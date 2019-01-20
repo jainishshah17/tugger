@@ -29,6 +29,9 @@ func main() {
 	// register hello function to handle all requests
 	server := http.NewServeMux()
 	server.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		//set header
+		w.Header().Set("Content-Type", "application/json")
+
 		data, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			log.Println(err)
@@ -68,6 +71,9 @@ func main() {
 					},
 				}
 				goto done
+			} else {
+				log.Printf("Image is being pulled from Private Registry: %s", container.Image)
+				admissionResponse.Allowed = true
 			}
 		}
 
@@ -80,12 +86,10 @@ func main() {
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Header().Set("Content-Type", "application/json")
 			return
 		}
 
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
 		w.Write(data)
 
 		log.Printf("Serving request: %s", r.URL.Path)
