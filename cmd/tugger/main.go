@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -50,16 +52,41 @@ func main() {
 			return
 		}
 
+		admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
 		for _, container := range pod.Spec.Containers {
 			log.Println("container Image is", container.Image)
 
 			if !strings.Contains(container.Image,"docker.jfrog.io") {
-				log.Println("Image is not being pulled from Private Registry")
-				w.WriteHeader(http.StatusBadRequest)
-				return
+				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
+				log.Printf(message)
+				admissionResponse.Result = &metav1.Status{
+					Reason: metav1.StatusReasonInvalid,
+					Details: &metav1.StatusDetails{
+						Causes: []metav1.StatusCause{
+							{Message: message},
+						},
+					},
+				}
+				goto done
 			}
 		}
 
+	done:
+		ar = v1beta1.AdmissionReview{
+			Response: &admissionResponse,
+		}
+
+		data, err = json.Marshal(ar)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Header().Set("Content-Type", "application/json")
+			return
+		}
+
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(data)
 
 		log.Printf("Serving request: %s", r.URL.Path)
 	})
