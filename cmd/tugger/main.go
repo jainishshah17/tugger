@@ -28,7 +28,8 @@ func main() {
 
 	// register hello function to handle all requests
 	server := http.NewServeMux()
-	server.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	server.HandleFunc("/validate", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Serving request: %s", r.URL.Path)
 		//set header
 		w.Header().Set("Content-Type", "application/json")
 
@@ -91,12 +92,75 @@ func main() {
 
 		w.WriteHeader(http.StatusOK)
 		w.Write(data)
-
-		log.Printf("Serving request: %s", r.URL.Path)
 	})
 
 	server.HandleFunc("/ping", hello)
 
+	server.HandleFunc("/mutate", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Serving request: %s", r.URL.Path)
+		//set header
+		w.Header().Set("Content-Type", "application/json")
+
+		data, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		log.Println(string(data))
+
+		ar := v1beta1.AdmissionReview{}
+		if err := json.Unmarshal(data, &ar); err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		pod := v1.Pod{}
+		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
+		for _, container := range pod.Spec.Containers {
+			log.Println("container Image is", container.Image)
+
+			if !strings.Contains(container.Image,"docker.jfrog.io") {
+				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
+				log.Printf(message)
+
+				imagePatch := `{"spec": {"template":{"spec": {"containers": [{"image": "docker.jfrog.io/nginx"}]}}}}`
+
+				admissionResponse.Allowed = true
+				admissionResponse.Patch = []byte(imagePatch)
+				pt := v1beta1.PatchTypeJSONPatch
+				admissionResponse.PatchType = &pt
+
+				goto done
+			} else {
+				log.Printf("Image is being pulled from Private Registry: %s", container.Image)
+				admissionResponse.Allowed = true
+			}
+		}
+
+	done:
+		ar = v1beta1.AdmissionReview{
+			Response: &admissionResponse,
+		}
+
+		data, err = json.Marshal(ar)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	})
 
 	// start the web server on port and accept requests
 	log.Printf("Server listening on port %s", port)

@@ -1,9 +1,9 @@
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: tugger
+  name: tugger-validate
 webhooks:
-- name: tugger.jainishshah17.com
+- name: tugger-validate.jainishshah17.com
   rules:
   - apiGroups:
     - ""
@@ -15,4 +15,4 @@ webhooks:
     - pods
   failurePolicy: Ignore
   clientConfig:
-    url: "TUGGER_URL"
+    url: "TUGGER_URL/validate"
