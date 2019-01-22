@@ -10,8 +10,7 @@ webhooks:
     apiVersions: ["v1"]
     resources: ["pods"]
   clientConfig:
-    url: "https://5eb92435.ngrok.io/mutate"
-#    service:
-#      name: tugger-svc
-#      namespace: default
-#      path: "/mutate"
+    service:
+      name: tugger-svc
+      namespace: default
+      path: "/mutate"
