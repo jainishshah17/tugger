@@ -1,12 +1,3 @@
----
-name: issue_report.md
-about: Create a report to help us improve
-title: ''
-labels: ''
-assignees: ''
-
----
-
 Is this a BUG REPORT or FEATURE REQUEST? (choose one):
 
 Version of Kubernetes:
