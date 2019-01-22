@@ -1,5 +1,5 @@
 # Builder image
-FROM golang:1.11.4-alpine
+FROM golang:1.11.4-alpine as builder
 
 # Install dependencies
 RUN apk update && apk add --update gcc git musl-dev curl
@@ -14,7 +14,7 @@ COPY ./ /src/jainishshah17/tugger/
 RUN cd cmd/tugger && go install
 
 # Runnable image
-FROM golang:1.11.4-alpine
+FROM alpine:3.8
 
 # Set vars
 ENV TUGGER_USER_NAME=tugger \
@@ -29,7 +29,7 @@ RUN addgroup -g ${TUGGER_USER_ID} -S ${TUGGER_USER_NAME} && \
     adduser -u ${TUGGER_USER_ID} -S ${TUGGER_USER_NAME} -G ${TUGGER_USER_NAME}
 
 # Copy microservice executable from builder image
-COPY --from=0 /go/bin/tugger /go/bin/tugger
+COPY --from=builder /go/bin/tugger /go/bin/tugger
 
 #RUN chown -R ${TUGGER_USER_NAME}:${TUGGER_USER_NAME} /src/jainishshah17/tugger/
 
