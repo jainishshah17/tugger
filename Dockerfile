@@ -22,7 +22,7 @@ ENV TUGGER_USER_NAME=tugger \
     PORT=8080
 
 # Install dependencies
-RUN apk update && apk add --update gcc git musl-dev curl
+RUN apk update && apk add --update git curl
 
 # Create user and create needed directories
 RUN addgroup -g ${TUGGER_USER_ID} -S ${TUGGER_USER_NAME} && \
