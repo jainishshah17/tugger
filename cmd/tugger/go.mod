@@ -1,7 +1,5 @@
 module github.com/jainishshah17/tugger
 
-replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.1.1
-
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gogo/protobuf v1.2.0 // indirect
@@ -17,7 +15,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 	k8s.io/api v0.0.0-20181221193117-173ce66c1e39
-	k8s.io/apimachinery v0.0.0-20190118112648-001e837a0139 // indirect
+	k8s.io/apimachinery v0.0.0-20190118112648-001e837a0139
 	k8s.io/klog v0.1.0 // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )

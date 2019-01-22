@@ -15,4 +15,8 @@ webhooks:
     - pods
   failurePolicy: Ignore
   clientConfig:
-    url: "TUGGER_URL/validate"
+    url: "https://5eb92435.ngrok.io/validate"
+#    service:
+#      name: tugger-svc
+#      namespace: default
+#      path: "/validate"

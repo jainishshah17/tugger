@@ -4,10 +4,14 @@ metadata:
   name: tugger-mutate
 webhooks:
 - name: tugger-mutate.jainishshah17.com
-  clientConfig:
-    url: "TUGGER_URL/mutate"
   rules:
   - operations: [ "CREATE" ]
     apiGroups: [""]
     apiVersions: ["v1"]
     resources: ["pods"]
+  clientConfig:
+    url: "https://5eb92435.ngrok.io/mutate"
+#    service:
+#      name: tugger-svc
+#      namespace: default
+#      path: "/mutate"

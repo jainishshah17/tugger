@@ -1,0 +1,47 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: tugger-deployment
+  labels:
+    app: tugger
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: tugger
+    spec:
+      securityContext:
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: tugger
+        image: jainishshah17/tugger:0.0.1
+        imagePullPolicy: Always
+        env:
+          - name: PORT
+            value: "8080"
+          - name: DOCKER_REGISTRY_URL
+            value: "jainishshah17"
+        ports:
+          - containerPort: 8080
+            name: http
+        livenessProbe:
+          httpGet:
+            port: 8080
+            path: /ping
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 10
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            port: 8080
+            path: /ping
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 10
+          failureThreshold: 10
+          successThreshold: 1
+        resources: {}

@@ -20,13 +20,16 @@ var (
 )
 
 func main() {
+
+	dockerRegistryUrl := os.Getenv("DOCKER_REGISTRY_URL")
+
 	// use PORT environment variable, or default to 8080
 	port := "8080"
 	if fromEnv := os.Getenv("PORT"); fromEnv != "" {
 		port = fromEnv
 	}
 
-	// register hello function to handle all requests
+	// register function to handle all requests
 	server := http.NewServeMux()
 	server.HandleFunc("/validate", func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Serving request: %s", r.URL.Path)
@@ -58,9 +61,9 @@ func main() {
 
 		admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
 		for _, container := range pod.Spec.Containers {
-			log.Println("container Image is", container.Image)
+			log.Println("Container Image is", container.Image)
 
-			if !strings.Contains(container.Image,"docker.jfrog.io") {
+			if !strings.Contains(container.Image, dockerRegistryUrl) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
 				admissionResponse.Result = &metav1.Status{
@@ -94,7 +97,7 @@ func main() {
 		w.Write(data)
 	})
 
-	server.HandleFunc("/ping", hello)
+	server.HandleFunc("/ping", healthCheck)
 
 	server.HandleFunc("/mutate", func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Serving request: %s", r.URL.Path)
@@ -126,16 +129,20 @@ func main() {
 
 		admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
 		for _, container := range pod.Spec.Containers {
-			log.Println("container Image is", container.Image)
+			log.Println("Container Image is", container.Image)
 
-			if !strings.Contains(container.Image,"docker.jfrog.io") {
+			if !strings.Contains(container.Image, dockerRegistryUrl) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
 
-				imagePatch := `{"spec": {"template":{"spec": {"containers": [{"image": "docker.jfrog.io/nginx"}]}}}}`
+				newImage := dockerRegistryUrl + "/" + container.Image
+				log.Printf("Changing image registry to:%s", newImage)
+				addContainerPatch := `[
+		 			{"op":"add","path":"/spec/containers","value":[{"image":"`+newImage+`","name":"`+container.Name+`","resources":{}}]}
+				]`
 
 				admissionResponse.Allowed = true
-				admissionResponse.Patch = []byte(imagePatch)
+				admissionResponse.Patch = []byte(string(addContainerPatch))
 				pt := v1beta1.PatchTypeJSONPatch
 				admissionResponse.PatchType = &pt
 
@@ -169,7 +176,7 @@ func main() {
 }
 
 // ping responds to the request with a plain-text "Ok" message.
-func hello(w http.ResponseWriter, r *http.Request) {
+func healthCheck(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Serving request: %s", r.URL.Path)
 	fmt.Fprintf(w, "Ok")
 }
