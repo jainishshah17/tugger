@@ -22,6 +22,7 @@ var (
 func main() {
 
 	dockerRegistryUrl := os.Getenv("DOCKER_REGISTRY_URL")
+	registrySecretName := os.Getenv("REGISTRY_SECRET_NAME")
 
 	// use PORT environment variable, or default to 8080
 	port := "8080"
@@ -142,9 +143,10 @@ func main() {
 				log.Printf(message)
 
 				newImage := dockerRegistryUrl + "/" + container.Image
-				log.Printf("Changing image registry to:%s", newImage)
+				log.Printf("Changing image registry to: %s", newImage)
 				addContainerPatch := `[
-		 			{"op":"add","path":"/spec/containers","value":[{"image":"`+newImage+`","name":"`+container.Name+`","resources":{}}]}
+		 			{"op":"add","path":"/spec/containers","value":[{"image":"`+newImage+`","name":"`+container.Name+`","resources":{}}]},
+					{"op":"add","path":"/spec/imagePullSecrets","value":[{"name": "`+registrySecretName+`"}]}
 				]`
 
 				admissionResponse.Allowed = true
