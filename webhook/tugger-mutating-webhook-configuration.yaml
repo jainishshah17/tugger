@@ -11,6 +11,6 @@ webhooks:
     resources: ["pods"]
   clientConfig:
     service:
-      name: tugger-svc
+      name: tugger
       namespace: default
       path: "/mutate"

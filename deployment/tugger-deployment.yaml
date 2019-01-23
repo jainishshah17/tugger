@@ -16,15 +16,15 @@ spec:
         fsGroup: 1001
       containers:
       - name: tugger
-        image: jainishshah17/tugger:0.0.1
+        image: jainishshah17/tugger:0.0.2
         imagePullPolicy: Always
         env:
           - name: PORT
-            value: "8080"
+            value: '8080'
           - name: DOCKER_REGISTRY_URL
             value: "jainishshah17"
           - name: REGISTRY_SECRET_NAME
-            value: "regsecret"
+            value: 'regsecret'
         ports:
           - containerPort: 8080
             name: http

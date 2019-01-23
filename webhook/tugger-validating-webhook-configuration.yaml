@@ -16,6 +16,6 @@ webhooks:
   failurePolicy: Ignore
   clientConfig:
     service:
-      name: tugger-svc
+      name: tugger
       namespace: default
       path: "/validate"
