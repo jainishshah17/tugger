@@ -26,6 +26,13 @@ docker build -t jainishshah17/tugger:0.0.1 .
 docker push jainishshah17/tugger:0.0.1
 ```
 
+### Create (Kubernetes Docker registry secret)[https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/]
+
+```bash
+# Create a Docker registry secret called 'regsecret'
+kubectl create secret docker-registry regsecret --docker-server=${DOCKER_REGISTRY} --docker-username=${DOCKER_USER} --docker-password=${DOCKER_PASS} --docker-email=${DOCKER_EMAIL}
+```
+
 ### Deploy Tugger to Kubernetes
 
 ```bash
@@ -45,3 +52,5 @@ kubectl create -f webhook/tugger-mutating-webhook-configuration.yaml
 # Configure ValidatingAdmissionWebhook
 kubectl create -f webhook/tugger-validating-webhook-configuration.yaml 
 ```
+
+

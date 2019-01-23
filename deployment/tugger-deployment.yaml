@@ -23,6 +23,8 @@ spec:
             value: "8080"
           - name: DOCKER_REGISTRY_URL
             value: "jainishshah17"
+          - name: REGISTRY_SECRET_NAME
+            value: "regsecret"
         ports:
           - containerPort: 8080
             name: http
