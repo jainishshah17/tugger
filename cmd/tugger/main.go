@@ -52,6 +52,9 @@ func main() {
 			return
 		}
 
+		namespace := ar.Request.Namespace
+		log.Printf("AdmissionReview Namespace is: %s", namespace)
+
 		pod := v1.Pod{}
 		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
 			log.Println(err)
@@ -119,6 +122,9 @@ func main() {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+
+		namespace := ar.Request.Namespace
+		log.Printf("AdmissionReview Namespace is: %s", namespace)
 
 		pod := v1.Pod{}
 		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
