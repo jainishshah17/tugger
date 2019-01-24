@@ -20,7 +20,6 @@ jobs:
       - setup_remote_docker
 
       # Login to docker registry
-      - run: go install
       - run: docker login -u $USER -p $PASSWORD
       # Build docker image
       - run: docker build --rm=false -t jainishshah17/tugger:$CIRCLE_BUILD_NUM .
