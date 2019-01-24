@@ -21,8 +21,11 @@ var (
 
 func main() {
 
+
 	dockerRegistryUrl := os.Getenv("DOCKER_REGISTRY_URL")
 	registrySecretName := os.Getenv("REGISTRY_SECRET_NAME")
+	whitelistNamespaces := os.Getenv("WHITELIST_NAMESPACES")
+	whitelist := strings.Split( whitelistNamespaces , ",")
 
 	// use PORT environment variable, or default to 8080
 	port := "8080"
@@ -56,33 +59,38 @@ func main() {
 		namespace := ar.Request.Namespace
 		log.Printf("AdmissionReview Namespace is: %s", namespace)
 
-		pod := v1.Pod{}
-		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
 		admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
-		for _, container := range pod.Spec.Containers {
-			log.Println("Container Image is", container.Image)
-
-			if !strings.Contains(container.Image, dockerRegistryUrl) {
-				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
-				log.Printf(message)
-				admissionResponse.Result = &metav1.Status{
-					Reason: metav1.StatusReasonInvalid,
-					Details: &metav1.StatusDetails{
-						Causes: []metav1.StatusCause{
-							{Message: message},
-						},
-					},
-				}
-				goto done
-			} else {
-				log.Printf("Image is being pulled from Private Registry: %s", container.Image)
-				admissionResponse.Allowed = true
+		if contains(whitelist, namespace){
+			pod := v1.Pod{}
+			if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
+				log.Println(err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
 			}
+
+			for _, container := range pod.Spec.Containers {
+				log.Println("Container Image is", container.Image)
+
+				if !strings.Contains(container.Image, dockerRegistryUrl) {
+					message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
+					log.Printf(message)
+					admissionResponse.Result = &metav1.Status{
+						Reason: metav1.StatusReasonInvalid,
+						Details: &metav1.StatusDetails{
+							Causes: []metav1.StatusCause{
+								{Message: message},
+							},
+						},
+					}
+					goto done
+				} else {
+					log.Printf("Image is being pulled from Private Registry: %s", container.Image)
+					admissionResponse.Allowed = true
+				}
+			}
+		} else {
+			log.Printf("Namespace is %s Whitelisted", namespace)
+			admissionResponse.Allowed = true
 		}
 
 	done:
@@ -127,38 +135,44 @@ func main() {
 		namespace := ar.Request.Namespace
 		log.Printf("AdmissionReview Namespace is: %s", namespace)
 
-		pod := v1.Pod{}
-		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
 		admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
-		for _, container := range pod.Spec.Containers {
-			log.Println("Container Image is", container.Image)
+		if !contains(whitelist, namespace){
+			pod := v1.Pod{}
+			if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
+				log.Println(err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 
-			if !strings.Contains(container.Image, dockerRegistryUrl) {
-				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
-				log.Printf(message)
+			admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
+			for _, container := range pod.Spec.Containers {
+				log.Println("Container Image is", container.Image)
 
-				newImage := dockerRegistryUrl + "/" + container.Image
-				log.Printf("Changing image registry to: %s", newImage)
-				addContainerPatch := `[
+				if !strings.Contains(container.Image, dockerRegistryUrl) {
+					message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
+					log.Printf(message)
+
+					newImage := dockerRegistryUrl + "/" + container.Image
+					log.Printf("Changing image registry to: %s", newImage)
+					addContainerPatch := `[
 		 			{"op":"add","path":"/spec/containers","value":[{"image":"`+newImage+`","name":"`+container.Name+`","resources":{}}]},
 					{"op":"add","path":"/spec/imagePullSecrets","value":[{"name": "`+registrySecretName+`"}]}
 				]`
 
-				admissionResponse.Allowed = true
-				admissionResponse.Patch = []byte(string(addContainerPatch))
-				pt := v1beta1.PatchTypeJSONPatch
-				admissionResponse.PatchType = &pt
+					admissionResponse.Allowed = true
+					admissionResponse.Patch = []byte(string(addContainerPatch))
+					pt := v1beta1.PatchTypeJSONPatch
+					admissionResponse.PatchType = &pt
 
-				goto done
-			} else {
-				log.Printf("Image is being pulled from Private Registry: %s", container.Image)
-				admissionResponse.Allowed = true
+					goto done
+				} else {
+					log.Printf("Image is being pulled from Private Registry: %s", container.Image)
+					admissionResponse.Allowed = true
+				}
 			}
+		} else {
+			log.Printf("Namespace is %s Whitelisted", namespace)
+			admissionResponse.Allowed = true
 		}
 
 	done:
@@ -187,4 +201,14 @@ func main() {
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Serving request: %s", r.URL.Path)
 	fmt.Fprintf(w, "Ok")
+}
+
+// if current namespace is part of whitelisted namespaces
+func contains(arr []string, str string) bool {
+	for _, a := range arr {
+		if a == str || strings.Contains(a, str) {
+			return true
+		}
+	}
+	return false
 }

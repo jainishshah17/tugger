@@ -9,6 +9,7 @@ webhooks:
     apiGroups: [""]
     apiVersions: ["v1"]
     resources: ["pods"]
+  failurePolicy: Ignore
   clientConfig:
     service:
       name: tugger

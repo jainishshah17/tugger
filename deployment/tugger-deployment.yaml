@@ -25,6 +25,8 @@ spec:
             value: "jainishshah17"
           - name: REGISTRY_SECRET_NAME
             value: 'regsecret'
+          - name: WHITELIST_NAMESPACES
+            value: "kube-system, default"
         ports:
           - containerPort: 8080
             name: http

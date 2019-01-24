@@ -18,6 +18,8 @@ docker:
   registryUrl:
   registrySecret:
 
+whitelistNamespaces: "kube-system,default"
+
 ingress:
   enabled: false
   annotations: {}
