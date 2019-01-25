@@ -19,3 +19,4 @@ webhooks:
       name: tugger
       namespace: default
       path: "/validate"
+    caBundle: ${CA_BUNDLE}

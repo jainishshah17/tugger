@@ -11,41 +11,25 @@ spec:
       labels:
         app: tugger
     spec:
-      securityContext:
-        runAsUser: 1001
-        fsGroup: 1001
       containers:
       - name: tugger
-        image: jainishshah17/tugger:0.0.2
+        image: jainishshah17/tugger:0.0.3
         imagePullPolicy: Always
         env:
-          - name: PORT
-            value: '8080'
           - name: DOCKER_REGISTRY_URL
-            value: "jainishshah17"
+            value: "docker.jfrog.io"
           - name: REGISTRY_SECRET_NAME
             value: 'regsecret'
           - name: WHITELIST_NAMESPACES
             value: "kube-system, default"
         ports:
-          - containerPort: 8080
-            name: http
-        livenessProbe:
-          httpGet:
-            port: 8080
-            path: /ping
-          initialDelaySeconds: 60
-          periodSeconds: 10
-          timeoutSeconds: 10
-          failureThreshold: 10
-          successThreshold: 1
-        readinessProbe:
-          httpGet:
-            port: 8080
-            path: /ping
-          initialDelaySeconds: 60
-          periodSeconds: 10
-          timeoutSeconds: 10
-          failureThreshold: 10
-          successThreshold: 1
+          - containerPort: 443
+            name: https
+        volumeMounts:
+        - name: tls
+          mountPath: /etc/admission-controller/tls
         resources: {}
+      volumes:
+        - name: tls
+          secret:
+            secretName: tugger-certs

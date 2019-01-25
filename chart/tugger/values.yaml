@@ -6,12 +6,12 @@ replicaCount: 1
 
 image:
   repository: jainishshah17/tugger
-  tag: 0.0.2
+  tag: 0.0.3
   pullPolicy: IfNotPresent
 
 service:
   type: ClusterIP
-  port: 8080
+  port: 443
 
 
 docker:
@@ -19,6 +19,7 @@ docker:
   registrySecret:
 
 whitelistNamespaces: "kube-system,default"
+tlsSecretName: tugger-certs
 
 ingress:
   enabled: false

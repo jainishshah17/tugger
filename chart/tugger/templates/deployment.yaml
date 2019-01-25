@@ -26,9 +26,10 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+          - "-tls-cert=/etc/admission-controller/tls/tls.crt"
+          - "-tls-key=/etc/admission-controller/tls/tls.key"
           env:
-            - name: PORT
-              value: {{ .Values.service.port }}
             - name: DOCKER_REGISTRY_URL
               value: {{ .Values.docker.registryUrl }}
             - name: REGISTRY_SECRET_NAME
@@ -36,27 +37,12 @@ spec:
             - name: WHITELIST_NAMESPACES
               value: {{ .Values.whitelistNamespaces }}
           ports:
-            - name: http
-              containerPort: 8080
+            - name: https
+              containerPort: 443
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /ping
-              port: http
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            timeoutSeconds: 10
-            failureThreshold: 10
-            successThreshold: 1
-          readinessProbe:
-            httpGet:
-              path: /ping
-              port: http
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            timeoutSeconds: 10
-            failureThreshold: 10
-            successThreshold: 1
+          volumeMounts:
+          - name: tls
+            mountPath: /etc/admission-controller/tls
           resources:
 {{ toYaml .Values.resources | indent 12 }}
     {{- with .Values.nodeSelector }}
@@ -71,3 +57,7 @@ spec:
       tolerations:
 {{ toYaml . | indent 8 }}
     {{- end }}
+      volumes:
+        - name: tls
+          secret:
+            secretName: {{ .Values.tlsSecretName }}

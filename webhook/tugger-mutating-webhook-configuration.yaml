@@ -15,3 +15,4 @@ webhooks:
       name: tugger
       namespace: default
       path: "/mutate"
+    caBundle: ${CA_BUNDLE}
