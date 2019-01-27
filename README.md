@@ -72,6 +72,17 @@ helm install --name tugger --set docker.registrySecret=regsecret,docker.registry
 kubectl create -f webhook/tugger-mutating-webhook-configuration.yaml 
 ```
 
+Note: Use MutatingAdmissionWebhook only if you want to enforce pulling of docker image from Private Docker Registry e.g [JFrog Artifactory](https://jfrog.com/artifactory/).
+If your container image is `nginx` then Tugger will append `REGISTRY_URL` to it. e.g `nginx` will become `jainishshah17/nginx`
+
+```bash
+# Configure ValidatingWebhookConfiguration
+kubectl create -f webhook/tugger-validating-webhook-configuration.yaml 
+```
+
+Note: Use MutatingAdmissionWebhook only if you want to check pulling of docker image from Private Docker Registry e.g [JFrog Artifactory](https://jfrog.com/artifactory/).
+If your container image does not contain `REGISTRY_URL` then Tugger will deny request to run that pod.
+
 ### Test Tugger
 
 ```bash
