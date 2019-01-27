@@ -19,16 +19,10 @@ spec:
         app: {{ template "tugger.name" . }}
         release: {{ .Release.Name }}
     spec:
-      securityContext:
-        runAsUser: 1001
-        fsGroup: 1001
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args:
-          - "-tls-cert=/etc/admission-controller/tls/tls.crt"
-          - "-tls-key=/etc/admission-controller/tls/tls.key"
           env:
             - name: DOCKER_REGISTRY_URL
               value: {{ .Values.docker.registryUrl }}

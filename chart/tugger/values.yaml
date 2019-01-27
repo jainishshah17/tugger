@@ -15,10 +15,10 @@ service:
 
 
 docker:
-  registryUrl:
+  registryUrl: jainishshah17
   registrySecret:
 
-whitelistNamespaces: "kube-system,default"
+whitelistNamespaces: "kube-system"
 tlsSecretName: tugger-certs
 
 ingress:
