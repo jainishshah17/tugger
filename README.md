@@ -26,12 +26,14 @@ docker build -t jainishshah17/tugger:0.0.1 .
 docker push jainishshah17/tugger:0.0.1
 ```
 
-### Create (Kubernetes Docker registry secret)[https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/]
+### Create [Kubernetes Docker registry secret](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
 
 ```bash
 # Create a Docker registry secret called 'regsecret'
 kubectl create secret docker-registry regsecret --docker-server=${DOCKER_REGISTRY} --docker-username=${DOCKER_USER} --docker-password=${DOCKER_PASS} --docker-email=${DOCKER_EMAIL}
 ```
+
+**Note**: Create Docker registry secret in each non-whitelisted namespaces.
 
 ### Generate TLS Certs for Tugger
 
@@ -47,12 +49,18 @@ kubectl create secret docker-registry regsecret --docker-server=${DOCKER_REGISTR
 
 ### Deploy Tugger to Kubernetes
 
+* Deploy using kubectl
 ```bash
 # Run deployment
 kubectl create -f deployment/tugger-deployment.yaml
 
 # Create service
 kubectl create -f  deployment/tugger-svc.yaml
+```
+
+* Deploy using Helm Chart
+```bash
+helm install --name tugger --set docker.registrySecret=regsecret,docker.registryUrl=jainishshah17,whitelistNamespaces="kube-system,default"   chart/tugger/
 ```
 
 ### Configure `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook`
