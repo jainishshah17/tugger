@@ -25,6 +25,17 @@ If release name contains chart name it will be used as a full name.
 {{- end -}}
 
 {{/*
+Create the name of the service account to use
+*/}}
+{{- define "tugger.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create -}}
+{{ default (include "tugger.fullname" .) .Values.serviceAccount.name }}
+{{- else -}}
+{{ default "default" .Values.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "tugger.chart" -}}

@@ -1,0 +1,13 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ template "tugger.fullname" . }}
+  labels:
+    app: {{ template "tugger.name" . }}
+    chart: {{ template "tugger.chart" . }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+rules:
+{{ toYaml .Values.rbac.role.rules }}
+{{- end }}
