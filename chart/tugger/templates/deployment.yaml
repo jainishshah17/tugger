@@ -34,6 +34,8 @@ spec:
               value: {{ .Values.docker.registrySecret }}
             - name: WHITELIST_NAMESPACES
               value: {{ .Values.whitelistNamespaces }}
+            - name: WHITELIST_REGISTRIES
+              value: {{ .Values.whitelistRegistries }}
           ports:
             - name: https
               containerPort: 443

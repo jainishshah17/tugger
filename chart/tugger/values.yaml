@@ -35,7 +35,7 @@ serviceAccount:
 
 image:
   repository: jainishshah17/tugger
-  tag: 0.0.3
+  tag: 0.0.4
   pullPolicy: IfNotPresent
 
 service:
@@ -45,9 +45,10 @@ service:
 
 docker:
   registryUrl: jainishshah17
-  registrySecret:
+  registrySecret: regsecret
 
 whitelistNamespaces: "kube-system"
+whitelistRegistries: 
 tlsSecretName: tugger-certs
 
 ingress:

@@ -35,8 +35,10 @@ var (
 var (
 	dockerRegistryUrl   = os.Getenv("DOCKER_REGISTRY_URL")
 	registrySecretName  = os.Getenv("REGISTRY_SECRET_NAME")
+	whitelistRegistries = os.Getenv("WHITELIST_REGISTRIES")
 	whitelistNamespaces = os.Getenv("WHITELIST_NAMESPACES")
-	whitelist           = strings.Split(whitelistNamespaces, ",")
+	whitelistedNamespaces = strings.Split(whitelistNamespaces, ",")
+	whitelistedRegistries = strings.Split(whitelistRegistries, ",")
 )
 
 func main() {
@@ -81,7 +83,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("AdmissionReview Namespace is: %s", namespace)
 
 	admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
-	if !contains(whitelist, namespace) {
+	if !contains(whitelistedNamespaces, namespace) {
 		pod := v1.Pod{}
 		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
 			log.Println(err)
@@ -92,7 +94,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 		for _, container := range pod.Spec.Containers {
 			log.Println("Container Image is", container.Image)
 
-			if !strings.Contains(container.Image, dockerRegistryUrl) {
+			if !contains(whitelistedRegistries, container.Image) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
 
@@ -160,7 +162,7 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("AdmissionReview Namespace is: %s", namespace)
 
 	admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
-	if contains(whitelist, namespace) {
+	if contains(whitelistedNamespaces, namespace) {
 		pod := v1.Pod{}
 		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
 			log.Println(err)
@@ -171,7 +173,7 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 		for _, container := range pod.Spec.Containers {
 			log.Println("Container Image is", container.Image)
 
-			if !strings.Contains(container.Image, dockerRegistryUrl) {
+			if !contains(whitelistedRegistries, container.Image) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
 				admissionResponse.Result = &metav1.Status{
