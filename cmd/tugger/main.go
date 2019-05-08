@@ -39,6 +39,12 @@ var (
 	whitelist           = strings.Split(whitelistNamespaces, ",")
 )
 
+type patch struct {
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value,omitempty"`
+}
+
 func main() {
 	flag.StringVar(&tlsCertFile, "tls-cert", "/etc/admission-controller/tls/tls.crt", "TLS certificate file.")
 	flag.StringVar(&tlsKeyFile, "tls-key", "/etc/admission-controller/tls/tls.key", "TLS key file.")
@@ -81,6 +87,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("AdmissionReview Namespace is: %s", namespace)
 
 	admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
+	patches := []patch{}
 	if !contains(whitelist, namespace) {
 		pod := v1.Pod{}
 		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
@@ -89,37 +96,59 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Handle Containers
 		for _, container := range pod.Spec.Containers {
-			log.Println("Container Image is", container.Image)
+			createPatch := handleContainer(&container, dockerRegistryUrl)
+			if createPatch {
+				patches = append(patches, patch{
+					Op:    "add",
+					Path:  "/spec/containers",
+					Value: []v1.Container{container},
+				})
+			}
+		}
 
-			if !strings.Contains(container.Image, dockerRegistryUrl) {
-				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
-				log.Printf(message)
-
-				newImage := dockerRegistryUrl + "/" + container.Image
-				log.Printf("Changing image registry to: %s", newImage)
-				addContainerPatch := `[
-		 			{"op":"add","path":"/spec/containers","value":[{"image":"` + newImage + `","name":"` + container.Name + `","resources":{}}]},
-					{"op":"add","path":"/spec/imagePullSecrets","value":[{"name": "` + registrySecretName + `"}]}
-				]`
-
-				admissionResponse.Allowed = true
-				admissionResponse.Patch = []byte(string(addContainerPatch))
-				pt := v1beta1.PatchTypeJSONPatch
-				admissionResponse.PatchType = &pt
-
-				goto done
-			} else {
-				log.Printf("Image is being pulled from Private Registry: %s", container.Image)
-				admissionResponse.Allowed = true
+		// Handle init containers
+		for _, container := range pod.Spec.InitContainers {
+			createPatch := handleContainer(&container, dockerRegistryUrl)
+			if createPatch {
+				patches = append(patches, patch{
+					Op:    "add",
+					Path:  "/spec/initContainers",
+					Value: []v1.Container{container},
+				})
 			}
 		}
 	} else {
 		log.Printf("Namespace is %s Whitelisted", namespace)
-		admissionResponse.Allowed = true
 	}
 
-done:
+	admissionResponse.Allowed = true
+	if len(patches) > 0 {
+
+		// Add image pull secret patche
+		patches = append(patches, patch{
+			Op:   "add",
+			Path: "/spec/imagePullSecrets",
+			Value: []v1.LocalObjectReference{
+				v1.LocalObjectReference{
+					Name: registrySecretName,
+				},
+			},
+		})
+
+		patchContent, err := json.Marshal(patches)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		admissionResponse.Patch = patchContent
+		pt := v1beta1.PatchTypeJSONPatch
+		admissionResponse.PatchType = &pt
+	}
+
 	ar = v1beta1.AdmissionReview{
 		Response: &admissionResponse,
 	}
@@ -133,6 +162,24 @@ done:
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
+
+func handleContainer(container *v1.Container, dockerRegistryUrl string) bool {
+	log.Println("Container Image is", container.Image)
+
+	if !strings.Contains(container.Image, dockerRegistryUrl) {
+		message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
+		log.Printf(message)
+
+		newImage := dockerRegistryUrl + "/" + container.Image
+		log.Printf("Changing image registry to: %s", newImage)
+
+		container.Image = newImage
+		return true
+	} else {
+		log.Printf("Image is being pulled from Private Registry: %s", container.Image)
+	}
+	return false
 }
 
 func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
