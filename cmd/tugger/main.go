@@ -224,7 +224,6 @@ func contains(arr []string, str string) bool {
 // if current registry is part of whitelisted registries
 func containsRegisty(arr []string, str string) bool {
 	for _, a := range arr {
-		log.Printf("whitelisted: %s and image: %s", a, str)
 		if a == str || strings.Contains(str, a) {
 			return true
 		}
