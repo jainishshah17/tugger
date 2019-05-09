@@ -47,7 +47,9 @@ docker:
   registryUrl: jainishshah17
   registrySecret: regsecret
 
+# Whitelist namespaces e.g "kubesystem,default,development"
 whitelistNamespaces: "kube-system"
+# Whitelist docker registries within non-whitelisted namespaces e.g "jainishshah17,10.110.50.0:5000,docker.artifactory.com"
 whitelistRegistries: 
 tlsSecretName: tugger-certs
 
