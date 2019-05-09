@@ -94,7 +94,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 		for _, container := range pod.Spec.Containers {
 			log.Println("Container Image is", container.Image)
 
-			if !contains(whitelistedRegistries, container.Image) {
+			if !containsRegisty(whitelistedRegistries, container.Image) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
 
@@ -173,7 +173,7 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 		for _, container := range pod.Spec.Containers {
 			log.Println("Container Image is", container.Image)
 
-			if !contains(whitelistedRegistries, container.Image) {
+			if !containsRegisty(whitelistedRegistries, container.Image) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
 				admissionResponse.Result = &metav1.Status{
@@ -215,6 +215,17 @@ done:
 func contains(arr []string, str string) bool {
 	for _, a := range arr {
 		if a == str || strings.Contains(a, str) {
+			return true
+		}
+	}
+	return false
+}
+
+// if current registry is part of whitelisted registries
+func containsRegisty(arr []string, str string) bool {
+	for _, a := range arr {
+		log.Printf("whitelisted: %s and image: %s", a, str)
+		if a == str || strings.Contains(str, a) {
 			return true
 		}
 	}
