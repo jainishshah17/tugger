@@ -3,6 +3,10 @@
 ### What does Tugger do?
 Tugger is Kubernetes Admission webhook to enforce pulling of docker images from private registry.
 
+### Note:
+Tugger has graduated. Tugger's new home is [JFrog/Tugger](https://github.com/jfrog/tugger). 
+JFrog is actively maintaining tugger.
+
 ### Prerequisites
 
 Kubernetes 1.9.0 or above with the `admissionregistration.k8s.io/v1beta1` API enabled. Verify that by the following command:
@@ -20,10 +24,10 @@ In addition, the `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook` adm
 
 ```bash
 # Build docker image
-docker build -t jainishshah17/tugger:0.0.1 .
+docker build -t jainishshah17/tugger:0.0.4 .
 
 # Push it to Docker Registry
-docker push jainishshah17/tugger:0.0.1
+docker push jainishshah17/tugger:0.0.4
 ```
 
 ### Create [Kubernetes Docker registry secret](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
@@ -60,7 +64,7 @@ kubectl create -f  deployment/tugger-svc.yaml
 
 * Deploy using Helm Chart
 ```bash
-helm install --name tugger --set docker.registrySecret=regsecret,docker.registryUrl=jainishshah17,whitelistNamespaces="kube-system,default"   chart/tugger/
+helm install --name tugger --set docker.registrySecret=regsecret,docker.registryUrl=jainishshah17,whitelistNamespaces="kube-system,default",whitelistRegistries="jainishshah17" chart/tugger/
 ```
 
 ### Configure `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook`

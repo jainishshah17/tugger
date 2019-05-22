@@ -13,15 +13,17 @@ spec:
     spec:
       containers:
       - name: tugger
-        image: jainishshah17/tugger:0.0.3
+        image: jainishshah17/tugger:0.0.4
         imagePullPolicy: Always
         env:
           - name: DOCKER_REGISTRY_URL
-            value: "docker.jfrog.io"
+            value: "jainishshah17"
           - name: REGISTRY_SECRET_NAME
             value: 'regsecret'
           - name: WHITELIST_NAMESPACES
-            value: "kube-system, default"
+            value: "kube-system,default"
+          - name: WHITELIST_REGISTRIES
+            value: "jainishshah17"
         ports:
           - containerPort: 443
             name: https

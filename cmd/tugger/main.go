@@ -33,10 +33,12 @@ var (
 )
 
 var (
-	dockerRegistryUrl   = os.Getenv("DOCKER_REGISTRY_URL")
-	registrySecretName  = os.Getenv("REGISTRY_SECRET_NAME")
-	whitelistNamespaces = os.Getenv("WHITELIST_NAMESPACES")
-	whitelist           = strings.Split(whitelistNamespaces, ",")
+	dockerRegistryUrl     = os.Getenv("DOCKER_REGISTRY_URL")
+	registrySecretName    = os.Getenv("REGISTRY_SECRET_NAME")
+	whitelistRegistries   = os.Getenv("WHITELIST_REGISTRIES")
+	whitelistNamespaces   = os.Getenv("WHITELIST_NAMESPACES")
+	whitelistedNamespaces = strings.Split(whitelistNamespaces, ",")
+	whitelistedRegistries = strings.Split(whitelistRegistries, ",")
 )
 
 type patch struct {
@@ -88,7 +90,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 
 	admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
 	patches := []patch{}
-	if !contains(whitelist, namespace) {
+	if !contains(whitelistedNamespaces, namespace) {
 		pod := v1.Pod{}
 		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
 			log.Println(err)
@@ -167,7 +169,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 func handleContainer(container *v1.Container, dockerRegistryUrl string) bool {
 	log.Println("Container Image is", container.Image)
 
-	if !strings.Contains(container.Image, dockerRegistryUrl) {
+	if !containsRegisty(whitelistedRegistries, container.Image) {
 		message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 		log.Printf(message)
 
@@ -207,7 +209,7 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("AdmissionReview Namespace is: %s", namespace)
 
 	admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
-	if contains(whitelist, namespace) {
+	if contains(whitelistedNamespaces, namespace) {
 		pod := v1.Pod{}
 		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
 			log.Println(err)
@@ -219,7 +221,7 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 		for _, container := range pod.Spec.Containers {
 			log.Println("Container Image is", container.Image)
 
-			if !strings.Contains(container.Image, dockerRegistryUrl) {
+			if !containsRegisty(whitelistedRegistries, container.Image) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
 				admissionResponse.Result = getInvalidContainerResponse(message)
@@ -234,7 +236,7 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 		for _, container := range pod.Spec.InitContainers {
 			log.Println("Init Container Image is", container.Image)
 
-			if !strings.Contains(container.Image, dockerRegistryUrl) {
+			if !containsRegisty(whitelistedRegistries, container.Image) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
 				admissionResponse.Result = getInvalidContainerResponse(message)
@@ -280,6 +282,16 @@ func getInvalidContainerResponse(message string) *metav1.Status {
 func contains(arr []string, str string) bool {
 	for _, a := range arr {
 		if a == str || strings.Contains(a, str) {
+			return true
+		}
+	}
+	return false
+}
+
+// if current registry is part of whitelisted registries
+func containsRegisty(arr []string, str string) bool {
+	for _, a := range arr {
+		if a == str || strings.Contains(str, a) {
 			return true
 		}
 	}
