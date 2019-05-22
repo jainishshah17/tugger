@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: tugger
-        image: jainishshah17/tugger:0.0.4
+        image: jainishshah17/tugger:0.0.5
         imagePullPolicy: Always
         env:
           - name: DOCKER_REGISTRY_URL
