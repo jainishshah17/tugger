@@ -215,20 +215,29 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Handle containers
 		for _, container := range pod.Spec.Containers {
 			log.Println("Container Image is", container.Image)
 
 			if !strings.Contains(container.Image, dockerRegistryUrl) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
-				admissionResponse.Result = &metav1.Status{
-					Reason: metav1.StatusReasonInvalid,
-					Details: &metav1.StatusDetails{
-						Causes: []metav1.StatusCause{
-							{Message: message},
-						},
-					},
-				}
+				admissionResponse.Result = getInvalidContainerResponse(message)
+				goto done
+			} else {
+				log.Printf("Image is being pulled from Private Registry: %s", container.Image)
+				admissionResponse.Allowed = true
+			}
+		}
+
+		// Handle init containers
+		for _, container := range pod.Spec.InitContainers {
+			log.Println("Init Container Image is", container.Image)
+
+			if !strings.Contains(container.Image, dockerRegistryUrl) {
+				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
+				log.Printf(message)
+				admissionResponse.Result = getInvalidContainerResponse(message)
 				goto done
 			} else {
 				log.Printf("Image is being pulled from Private Registry: %s", container.Image)
@@ -254,6 +263,17 @@ done:
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
+
+func getInvalidContainerResponse(message string) *metav1.Status {
+	return &metav1.Status{
+		Reason: metav1.StatusReasonInvalid,
+		Details: &metav1.StatusDetails{
+			Causes: []metav1.StatusCause{
+				{Message: message},
+			},
+		},
+	}
 }
 
 // if current namespace is part of whitelisted namespaces
