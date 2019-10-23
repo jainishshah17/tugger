@@ -12,6 +12,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
@@ -21,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"k8s.io/api/admission/v1beta1"
 	"k8s.io/api/core/v1"
@@ -37,6 +39,7 @@ var (
 	registrySecretName    = os.Getenv("REGISTRY_SECRET_NAME")
 	whitelistRegistries   = os.Getenv("WHITELIST_REGISTRIES")
 	whitelistNamespaces   = os.Getenv("WHITELIST_NAMESPACES")
+	webhookUrl            = os.Getenv("WEBHOOK_URL")
 	whitelistedNamespaces = strings.Split(whitelistNamespaces, ",")
 	whitelistedRegistries = strings.Split(whitelistRegistries, ",")
 )
@@ -45,6 +48,10 @@ type patch struct {
 	Op    string      `json:"op"`
 	Path  string      `json:"path"`
 	Value interface{} `json:"value,omitempty"`
+}
+
+type SlackRequestBody struct {
+	Text string `json:"text"`
 }
 
 func main() {
@@ -175,6 +182,7 @@ func handleContainer(container *v1.Container, dockerRegistryUrl string) bool {
 
 		newImage := dockerRegistryUrl + "/" + container.Image
 		log.Printf("Changing image registry to: %s", newImage)
+		SendSlackNotification("Changing image registry to: " + newImage)
 
 		container.Image = newImage
 		return true
@@ -224,6 +232,7 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 			if !containsRegisty(whitelistedRegistries, container.Image) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
+				SendSlackNotification(message)
 				admissionResponse.Result = getInvalidContainerResponse(message)
 				goto done
 			} else {
@@ -239,6 +248,7 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 			if !containsRegisty(whitelistedRegistries, container.Image) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
+				SendSlackNotification(message)
 				admissionResponse.Result = getInvalidContainerResponse(message)
 				goto done
 			} else {
@@ -302,4 +312,32 @@ func containsRegisty(arr []string, str string) bool {
 func healthCheck(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Serving request: %s", r.URL.Path)
 	fmt.Fprintf(w, "Ok")
+}
+
+// SendSlackNotification will post to an 'Incoming Webook' url setup in Slack Apps. It accepts
+// some text and the slack channel is saved within Slack.
+func SendSlackNotification(msg string) {
+	if webhookUrl != "" {
+		slackBody, _ := json.Marshal(SlackRequestBody{Text: msg})
+		req, err := http.NewRequest(http.MethodPost, webhookUrl, bytes.NewBuffer(slackBody))
+		if err != nil {
+			log.Println(err)
+		}
+
+		req.Header.Add("Content-Type", "application/json")
+
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Println(err)
+		}
+
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(resp.Body)
+		if buf.String() != "ok" {
+			log.Println("Non-ok response returned from Slack")
+		}
+	} else {
+		log.Println("Slack Webhook URL is not provided")
+	}
 }

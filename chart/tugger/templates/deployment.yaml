@@ -36,6 +36,8 @@ spec:
               value: {{ .Values.whitelistNamespaces }}
             - name: WHITELIST_REGISTRIES
               value: {{ .Values.whitelistRegistries }}
+            - name: WEBHOOK_URL
+              value: {{ .Values.webhookUrl }}
           ports:
             - name: https
               containerPort: 443
