@@ -337,6 +337,7 @@ func SendSlackNotification(msg string) {
 		if buf.String() != "ok" {
 			log.Println("Non-ok response returned from Slack")
 		}
+		defer resp.Body.Close()
 	} else {
 		log.Println("Slack Webhook URL is not provided")
 	}
