@@ -182,7 +182,7 @@ func handleContainer(container *v1.Container, dockerRegistryUrl string) bool {
 
 		newImage := dockerRegistryUrl + "/" + container.Image
 		log.Printf("Changing image registry to: %s", newImage)
-		SendSlackNotification("Changing image registry to: " + newImage)
+		SendSlackNotification("Changing image registry to: " + newImage + " from: " + container.Image)
 
 		container.Image = newImage
 		return true
