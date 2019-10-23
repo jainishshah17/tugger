@@ -4,7 +4,7 @@ kind: Namespace
 metadata:
   name: nginx
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx
@@ -13,6 +13,9 @@ metadata:
     test: tugger
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      test: tugger
   template:
     metadata:
       labels:

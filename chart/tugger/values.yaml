@@ -35,7 +35,7 @@ serviceAccount:
 
 image:
   repository: jainishshah17/tugger
-  tag: 0.0.5
+  tag: 0.0.6
   pullPolicy: IfNotPresent
 
 service:
@@ -52,6 +52,8 @@ whitelistNamespaces: "kube-system"
 # Whitelist docker registries within non-whitelisted namespaces e.g "jainishshah17,10.110.50.0:5000,docker.artifactory.com"
 whitelistRegistries: 
 tlsSecretName: tugger-certs
+# Slack webhook URL e.g "https://hooks.slack.com/services/X1234"
+webhookUrl:
 
 ingress:
   enabled: false
