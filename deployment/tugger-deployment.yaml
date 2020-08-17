@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tugger-deployment
@@ -6,6 +6,9 @@ metadata:
     app: tugger
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: tugger
   template:
     metadata:
       labels:
