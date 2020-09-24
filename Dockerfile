@@ -1,8 +1,5 @@
 # Builder image
-FROM golang:1.11.4-alpine as builder
-
-# Install dependencies
-RUN apk update && apk add --update gcc git musl-dev curl
+FROM golang:1.15 as builder
 
 # Set workspace
 WORKDIR /src/jainishshah17/tugger/
@@ -14,16 +11,10 @@ COPY ./ /src/jainishshah17/tugger/
 RUN cd cmd/tugger && go install
 
 # Runnable image
-FROM alpine:3.8
-
-# Install dependencies
-RUN apk update && apk add --update git curl
+FROM gcr.io/distroless/base-debian10
 
 # Copy microservice executable from builder image
-COPY --from=builder /go/bin/tugger /go/bin/tugger
-
-# Directory for tls
-RUN mkdir -p /etc/admission-controller/tls
+COPY --from=builder /go/bin/tugger /
 
 # Set Entrypoint
-CMD ["/go/bin/tugger"]
+CMD ["/tugger"]

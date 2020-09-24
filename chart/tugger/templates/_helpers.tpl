@@ -41,3 +41,18 @@ Create chart name and version as used by the chart label.
 {{- define "tugger.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
+
+
+{{/*
+Generate certificates for mutating webhook
+*/}}
+{{- define "tugger.gen-certs" -}}
+{{- $ca := genCA "tugger-ca" 3650 }}
+{{- $cn := printf "tugger-controller-service" }}
+{{- $altName1 := printf "agones-controller-service.%s"  .Values.agones.namespace }}
+{{- $altName2 := printf "agones-controller-service.%s.svc" .Values.agones.namespace }}
+{{- $cert := genSignedCert $cn nil (list $altName1 $altName2) 3650 $ca }}
+tls.crt: {{ $cert.Cert | b64enc }}
+tls.key: {{ $cert.Key | b64enc }}
+ca.crt: {{ $ca.Cert | b64enc }}
+{{- end -}}

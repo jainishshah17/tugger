@@ -8,6 +8,16 @@ metadata:
     chart: {{ template "tugger.chart" . }}
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
+  ## Rules to create. It follows the role specification
 rules:
-{{ toYaml .Values.rbac.role.rules }}
+- apiGroups:
+  - ''
+  resources:
+  - services
+  - endpoints
+  - pods
+  verbs:
+  - get
+  - watch
+  - list
 {{- end }}

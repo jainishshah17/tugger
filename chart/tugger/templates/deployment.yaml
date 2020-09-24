@@ -1,3 +1,4 @@
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,10 +19,12 @@ spec:
       labels:
         app: {{ template "tugger.name" . }}
         release: {{ .Release.Name }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/admission-registration.yaml") . | sha256sum }}
     spec:
-      {{- if .Values.imagePullSecrets }}
+      {{- with .Values.image.pullSecret }}
       imagePullSecrets:
-      - name: {{ .Values.imagePullSecrets }}
+      - name: {{ . }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
@@ -33,9 +36,9 @@ spec:
             - name: REGISTRY_SECRET_NAME
               value: {{ .Values.docker.registrySecret }}
             - name: WHITELIST_NAMESPACES
-              value: {{ .Values.whitelistNamespaces }}
+              value: {{ join "," .Values.whitelistNamespaces }}
             - name: WHITELIST_REGISTRIES
-              value: {{ .Values.whitelistRegistries }}
+              value: {{ join "," (append .Values.whitelistRegistries .Values.docker.registryUrl) }}
             - name: WEBHOOK_URL
               value: {{ .Values.webhookUrl }}
           ports:
@@ -47,6 +50,14 @@ spec:
             mountPath: /etc/admission-controller/tls
           resources:
 {{ toYaml .Values.resources | indent 12 }}
+        {{ with .Values.livenessProbe }}
+          livenessProbe:
+{{ toYaml . | indent 12 }}
+        {{- end }}
+        {{- with .Values.readinessProbe }}
+          readinessProbe:
+{{ toYaml . | indent 12 }}
+        {{- end }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
@@ -62,4 +73,4 @@ spec:
       volumes:
         - name: tls
           secret:
-            secretName: {{ .Values.tlsSecretName }}
+            secretName: {{ default (printf "%s-cert" (include "tugger.fullname" . )) .Values.tls.secretName }}

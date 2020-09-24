@@ -1,0 +1,102 @@
+{{- $serviceName := include "tugger.fullname" . }}
+{{- $ca := genCA (printf "%s-mutating-webhook-ca" $serviceName) 1825 }}
+{{- $cn := $serviceName }}
+{{- $altName1 := printf "%s.%s" $serviceName .Release.Namespace }}
+{{- $altName2 := printf "%s.%s.svc" $serviceName .Release.Namespace }}
+{{- $cert := genSignedCert $serviceName nil (list $altName1 $altName2) 1825 $ca }}
+
+# Detect if we should use the user defined CA Certificate or a generated one
+{{- $caCert := "" }}
+{{- if .Values.tls.caCert }}
+    {{ $caCert = .Values.tls.caCert }}
+{{- else }}
+  {{ $caCert = $ca.Cert }}
+{{- end }}
+
+{{- if .Values.createValidatingWebhook }}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ template "tugger.fullname" . }}
+  labels:
+    app: {{ template "tugger.name" . }}
+    chart: {{ template "tugger.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+webhooks:
+- name: tugger-validate.jainishshah17.com
+  sideEffects: None
+  admissionReviewVersions: ["v1beta1"]
+  {{- with .Values.namespaceSelector }}
+  namespaceSelector:
+{{ . | toYaml | indent 4 }}
+  {{- end }}
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    resources:
+    - pods
+    scope: "Namespaced"
+  failurePolicy: Ignore
+  clientConfig:
+    service:
+      name: {{ $serviceName }}
+      namespace: {{ .Release.Namespace }}
+      path: "/validate"
+    caBundle: {{ b64enc $caCert }}
+{{- end }}
+
+{{- if .Values.createMutatingWebhook }}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: {{ template "tugger.fullname" . }}
+  labels:
+    app: {{ template "tugger.name" . }}
+    chart: {{ template "tugger.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+webhooks:
+- name: tugger-mutate.jainishshah17.com
+  sideEffects: None
+  admissionReviewVersions: ["v1beta1"]
+  {{- with .Values.namespaceSelector }}
+  namespaceSelector:
+{{ . | toYaml | indent 4 }}
+  {{- end }}
+  rules:
+  - operations: [ "CREATE" ]
+    apiGroups: [""]
+    apiVersions: ["v1"]
+    resources: ["pods"]
+  failurePolicy: Ignore
+  clientConfig:
+    service:
+      name: {{ $serviceName }}
+      namespace: {{ .Release.Namespace }}
+      path: "/mutate"
+    caBundle: {{ b64enc $caCert }}
+{{- end }}
+
+{{- if not .Values.tls.secretName }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ template "tugger.fullname" . }}-cert
+  labels:
+    app: {{ template "tugger.name" . }}
+    chart: {{ template "tugger.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+type: kubernetes.io/tls
+data:
+  tls.crt: {{ b64enc $cert.Cert }}
+  tls.key: {{ b64enc $cert.Key }}
+{{- end }}
