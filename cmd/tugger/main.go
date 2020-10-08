@@ -97,8 +97,9 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 
 	admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
 	patches := []patch{}
+
+	pod := v1.Pod{}
 	if !contains(whitelistedNamespaces, namespace) {
-		pod := v1.Pod{}
 		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusBadRequest)
@@ -106,26 +107,40 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Handle Containers
-		for _, container := range pod.Spec.Containers {
-			createPatch := handleContainer(&container, dockerRegistryUrl)
-			if createPatch {
-				patches = append(patches, patch{
-					Op:    "add",
-					Path:  "/spec/containers",
-					Value: []v1.Container{container},
-				})
+		for i, container := range pod.Spec.Containers {
+			originalImage := container.Image
+			if handleContainer(&container, dockerRegistryUrl) {
+				patches = append(
+					patches, patch{
+						Op:    "replace",
+						Path:  fmt.Sprintf("/spec/containers/%d/image", i),
+						Value: container.Image,
+					},
+					patch{
+						Op:    "add",
+						Path:  fmt.Sprintf("/metadata/annotations/tugger-original-image-%d", i),
+						Value: originalImage,
+					},
+				)
 			}
 		}
 
 		// Handle init containers
-		for _, container := range pod.Spec.InitContainers {
-			createPatch := handleContainer(&container, dockerRegistryUrl)
-			if createPatch {
-				patches = append(patches, patch{
-					Op:    "add",
-					Path:  "/spec/initContainers",
-					Value: []v1.Container{container},
-				})
+		for i, container := range pod.Spec.InitContainers {
+			originalImage := container.Image
+			if handleContainer(&container, dockerRegistryUrl) {
+				patches = append(patches,
+					patch{
+						Op:    "replace",
+						Path:  fmt.Sprintf("/spec/initContainers/%d/image", i),
+						Value: container.Image,
+					},
+					patch{
+						Op:    "add",
+						Path:  fmt.Sprintf("/metadata/annotations/tugger-original-init-image-%d", i),
+						Value: originalImage,
+					},
+				)
 			}
 		}
 	} else {
@@ -135,7 +150,26 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 	admissionResponse.Allowed = true
 	if len(patches) > 0 {
 
-		// Add image pull secret patche
+		// If the pod doesnt have annotations prepend a patch
+		// so the annotations map exists before the patches above
+		if pod.ObjectMeta.Annotations == nil {
+			patches = append([]patch{patch{
+				Op:    "add",
+				Path:  "/metadata/annotations",
+				Value: map[string]string{},
+			}}, patches...)
+		}
+
+		// If the pod doesn't have labels append a patch
+		if pod.ObjectMeta.Labels == nil {
+			patches = append(patches, patch{
+				Op:    "add",
+				Path:  "/metadata/labels",
+				Value: map[string]string{},
+			})
+		}
+
+		// Add image pull secret and label
 		patches = append(patches, patch{
 			Op:   "add",
 			Path: "/spec/imagePullSecrets",
@@ -143,8 +177,12 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 				v1.LocalObjectReference{
 					Name: registrySecretName,
 				},
-			},
-		})
+			}},
+			patch{
+				Op:    "add",
+				Path:  "/metadata/labels/tugger-modified",
+				Value: "true",
+			})
 
 		patchContent, err := json.Marshal(patches)
 		if err != nil {
