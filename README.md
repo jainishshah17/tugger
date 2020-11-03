@@ -97,7 +97,7 @@ helm install --name tugger \
 	kubectl create -f webhook/tugger-validating-webhook ration.yaml 
 	```
 
-	Note: Use MutatingAdmissionWebhook only if you want to check pulling of docker image from Private Docker Registry e.g [JFrog Artifactory](https://jfrog.com/artifactory/).
+	Note: Use ValidatingWebhookConfiguration only if you want to check pulling of docker image from Private Docker Registry e.g [JFrog Artifactory](https://jfrog.com/artifactory/).
 	If your container image does not contain `REGISTRY_URL` then Tugger will deny request to run that pod.
 
 ### Test Tugger
