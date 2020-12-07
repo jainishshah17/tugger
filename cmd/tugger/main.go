@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"k8s.io/api/admission/v1beta1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -86,7 +86,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println(string(data))
 
 	ar := v1beta1.AdmissionReview{}
-	if err := json.Unmarshal(data, &ar); err != nil {
+	if err := json.Unmarshal(data, &ar); err != nil || ar.Request == nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
