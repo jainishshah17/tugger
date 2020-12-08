@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"k8s.io/api/admission/v1beta1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -86,7 +86,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println(string(data))
 
 	ar := v1beta1.AdmissionReview{}
-	if err := json.Unmarshal(data, &ar); err != nil {
+	if err := json.Unmarshal(data, &ar); err != nil || ar.Request == nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -254,7 +254,7 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 	namespace := ar.Request.Namespace
 	log.Printf("AdmissionReview Namespace is: %s", namespace)
 
-	admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
+	admissionResponse := v1beta1.AdmissionResponse{Allowed: true}
 	if !contains(whitelistedNamespaces, namespace) {
 		pod := v1.Pod{}
 		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
@@ -271,11 +271,12 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
 				SendSlackNotification(message)
+				admissionResponse.Allowed = false
 				admissionResponse.Result = getInvalidContainerResponse(message)
 				goto done
 			} else {
 				log.Printf("Image is being pulled from Private Registry: %s", container.Image)
-				admissionResponse.Allowed = true
+				admissionResponse.Allowed = true && admissionResponse.Allowed
 			}
 		}
 
@@ -287,16 +288,17 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
 				SendSlackNotification(message)
+				admissionResponse.Allowed = false
 				admissionResponse.Result = getInvalidContainerResponse(message)
 				goto done
 			} else {
 				log.Printf("Image is being pulled from Private Registry: %s", container.Image)
-				admissionResponse.Allowed = true
+				admissionResponse.Allowed = true && admissionResponse.Allowed
 			}
 		}
 	} else {
 		log.Printf("Namespace is %s Whitelisted", namespace)
-		admissionResponse.Allowed = true
+		admissionResponse.Allowed = true && admissionResponse.Allowed
 	}
 
 done:
