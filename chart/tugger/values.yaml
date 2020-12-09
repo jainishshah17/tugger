@@ -39,6 +39,9 @@ whitelistNamespaces:
 # e.g "[jainishshah17,10.110.50.0:5000,docker.artifactory.com]"
 whitelistRegistries: []
 
+space:
+  enabled: false
+
 tls:
   # Optional existing certificate secret to use.
   # A certificate is generated if not specified

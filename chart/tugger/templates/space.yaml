@@ -1,0 +1,24 @@
+{{- if .Values.space.enabled }}
+{{- range $key := list "imagepullsecret" }}
+{{- $secret := index $.Values.vaultCommon $key }}
+apiVersion: spacecontroller.infoblox-cto.github.com/v1alpha1
+kind: Space
+metadata:
+  name: {{ template "tugger.fullname" $ }}-{{ lower $key }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ template "tugger.name" $ }}
+    chart: {{ template "tugger.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+spec:
+  secretName: {{ template "tugger.fullname" $ }}-{{ lower $key }}
+  path: {{ tpl $secret.path $ }}
+  type: {{ tpl $secret.type $ }}
+  secrets:
+    {{- range $secret.keys }}
+    {{ . }}: VAULT
+    {{- end }}
+---
+{{- end }}
+{{- end }}
