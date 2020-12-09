@@ -1,19 +1,20 @@
 @Library('jenkins.shared.library') _
 
-environment {
-  HELM_IMAGE = "infoblox/helm:3.2.4-5b243a2"
-  REGISTRY = "core-harbor-prod.sdp.infoblox.com"
-  VERSION = sh(script: "git describe --always --long --tags", returnStdout: true).trim()
-  TAG = "${env.VERSION}-j${env.BUILD_NUMBER}"
-}
-
 pipeline {
   agent {
     label 'ubuntu_docker_label'
   }
+  environment {
+    HELM_IMAGE = "infoblox/helm:3.2.4-5b243a2"
+    REGISTRY = "core-harbor-prod.sdp.infoblox.com"
+    VERSION = sh(script: "git describe --always --long --tags", returnStdout: true).trim()
+    TAG = "${env.VERSION}-j${env.BUILD_NUMBER}"
+  }
   stages {
     stage("Build Image") {
-      sh "docker build . -t tugger:$TAG"
+      steps {
+        sh 'docker build . -t tugger:$TAG'
+      }
     }
     stage("Push Image") {
       when {
@@ -33,13 +34,15 @@ pipeline {
         dir("chart") {
           sh '''
             sed -i "s!repository: .*!repository: $REGISTRY/infoblox/tugger!g" tugger/values.yaml
-            sed -i "s!tag: .*!tag: $TAG!g" tugger/values.yaml
           '''
           withAWS(credentials: "CICD_HELM", region: "us-east-1") {
             sh '''
               docker run --rm \
+                  -e AWS_REGION \
+                  -e AWS_ACCESS_KEY_ID \
+                  -e AWS_SECRET_ACCESS_KEY \
                   -v $(pwd):/pkg \
-                  $HELM_IMAGE package /pkg/tugger --version $TAG -d /pkg
+                  $HELM_IMAGE package /pkg/tugger --app-version $TAG --version $TAG -d /pkg
             '''
           }
         }
