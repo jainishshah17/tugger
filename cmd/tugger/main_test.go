@@ -18,6 +18,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/infobloxopen/atlas-app-toolkit/logging"
 	"github.com/jarcoal/httpmock"
 )
 
@@ -336,4 +337,8 @@ func Test_imageExists(t *testing.T) {
 			}
 		})
 	}
+}
+
+func init() {
+	log = logging.New("debug")
 }
