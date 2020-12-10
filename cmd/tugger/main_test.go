@@ -17,6 +17,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/jarcoal/httpmock"
 )
 
 const (
@@ -288,6 +290,49 @@ func TestHandler(t *testing.T) {
 			if rr.Body.String() != tt.expectBody {
 				t.Errorf("handler returned unexpected body: got %v want %v",
 					rr.Body.String(), tt.expectBody)
+			}
+		})
+	}
+}
+
+func runMockRegistry() func() {
+	httpmock.Activate()
+	httpmock.RegisterResponder("GET", "https://index.docker.io/v2/",
+		httpmock.NewStringResponder(http.StatusOK, `{}`))
+	httpmock.RegisterResponder("GET", "https://index.docker.io/v2/library/nginx/manifests/latest",
+		httpmock.NewStringResponder(http.StatusOK, `{}`))
+	httpmock.RegisterResponder("GET", "https://index.docker.io/v2/jainishshah17/nginx/manifests/notexist",
+		httpmock.NewStringResponder(http.StatusNotFound, `{"errors":[{"code":"MANIFEST_UNKNOWN","message":"manifest unknown","detail":{"Tag":"notexist"}}]}`))
+	return httpmock.DeactivateAndReset
+}
+
+func Test_imageExists(t *testing.T) {
+	tests := []struct {
+		name  string
+		image string
+		want  bool
+	}{
+		{
+			name:  "happy",
+			image: "nginx",
+			want:  true,
+		},
+		{
+			name:  "doesn't exist",
+			image: "jainishshah17/nginx:notexist",
+			want:  false,
+		},
+		{
+			name:  "doesn't parse",
+			image: "doesn't parse",
+			want:  false,
+		},
+	}
+	defer runMockRegistry()()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := imageExists(tt.image); got != tt.want {
+				t.Errorf("imageExists() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -24,12 +24,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"k8s.io/api/admission/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
+	ifExists    bool
 	tlsCertFile string
 	tlsKeyFile  string
 )
@@ -55,6 +59,7 @@ type SlackRequestBody struct {
 }
 
 func main() {
+	flag.BoolVar(&ifExists, "if-exists", false, "makes the mutation conditional on whether the mutated image name exists in the registry")
 	flag.StringVar(&tlsCertFile, "tls-cert", "/etc/admission-controller/tls/tls.crt", "TLS certificate file.")
 	flag.StringVar(&tlsKeyFile, "tls-key", "/etc/admission-controller/tls/tls.key", "TLS key file.")
 	flag.Parse()
@@ -211,23 +216,43 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+// imageExists verifies an image exists in the remote registry
+func imageExists(image string) bool {
+	ref, err := name.ParseReference(image)
+	if err != nil {
+		log.Print(err)
+		return false
+	}
+
+	if _, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain)); err != nil {
+		log.Print(err)
+		return false
+	}
+
+	return true
+}
+
 func handleContainer(container *v1.Container, dockerRegistryUrl string) bool {
 	log.Println("Container Image is", container.Image)
 
-	if !containsRegisty(whitelistedRegistries, container.Image) {
-		message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
-		log.Printf(message)
-
-		newImage := dockerRegistryUrl + "/" + container.Image
-		log.Printf("Changing image registry to: %s", newImage)
-		SendSlackNotification("Changing image registry to: " + newImage + " from: " + container.Image)
-
-		container.Image = newImage
-		return true
-	} else {
+	if containsRegisty(whitelistedRegistries, container.Image) {
 		log.Printf("Image is being pulled from Private Registry: %s", container.Image)
+		return false
 	}
-	return false
+	message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
+	log.Printf(message)
+
+	newImage := dockerRegistryUrl + "/" + container.Image
+	if ifExists && !imageExists(newImage) {
+		log.Printf("%s does not exist in private registry, skipping patching", newImage)
+		return false
+	}
+
+	log.Printf("Changing image registry to: %s", newImage)
+	SendSlackNotification("Changing image registry to: " + newImage + " from: " + container.Image)
+
+	container.Image = newImage
+	return true
 }
 
 func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {

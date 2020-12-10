@@ -28,6 +28,7 @@ service:
   port: 443
 
 docker:
+  ifExists: false
   registryUrl: jainishshah17
   registrySecret: regsecret
 
