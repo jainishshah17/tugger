@@ -30,6 +30,11 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - /tugger
+            {{- if .Values.docker.ifExists }}
+            - --if-exists
+            {{- end }}
           env:
             - name: DOCKER_REGISTRY_URL
               value: {{ .Values.docker.registryUrl }}
@@ -46,6 +51,10 @@ spec:
               containerPort: 443
               protocol: TCP
           volumeMounts:
+          {{- if and .Values.docker.ifExists .Values.image.pullSecret }}
+          - name: pullsecret
+            mountPath: /root/.docker/
+          {{- end }}
           - name: tls
             mountPath: /etc/admission-controller/tls
           resources:
@@ -71,6 +80,14 @@ spec:
 {{ toYaml . | indent 8 }}
     {{- end }}
       volumes:
+        {{- with .Values.image.pullSecret }}
+        - name: pullsecret
+          secret:
+            secretName: {{ . }}
+            items:
+              - key: .dockerconfigjson
+                path: config.json
+        {{- end }}
         - name: tls
           secret:
             secretName: {{ default (printf "%s-cert" (include "tugger.fullname" . )) .Values.tls.secretName }}
