@@ -107,5 +107,60 @@ helm install --name tugger \
 kubectl apply -f test/nginx.yaml 
 ```
 
+## Configure
 
+The mutation or validation policy can be defined as a list of rules in a YAML file.
 
+The YALM file can be specified with the command line argument `--policy-file=FILE`, or when using the Helm chart, populate `rules:` in values.
+
+### Schema
+
+```yaml
+rules:
+- pattern: regex
+  replacement: template (optional)
+  condition: policy (optional)
+- ...
+```
+
+_pattern_ is a regex pattern
+
+_replacement_ is a template comprised of the captured groups to use to generate the new image name in the mutating admission controller. When _replacement_ is `null` or undefined, the image name is allowed without patching. Rules with this field are ignored by the validating admission controller, where mutation is not supported.
+
+_condition_ is a special condition to test before committing the replacement. Initially `Always` and `Exists` will be supported. `Always` is the default and performs the replacement regardless of any condition. `Exists` implements the behavior from #7; it only rewrites the image name if the target name exists in the remote registry.
+
+Each rule will be evaluated in order, and if the list is exhausted without a match, the admission controller will return `allowed: false`.
+
+### Examples
+
+This example allows all images without rewriting:
+```yaml
+rules:
+- pattern: .*
+```
+
+This example implements the default behavior of rewriting all image names to start with `jainishshah17`:
+```yaml
+rules:
+- pattern: ^jainishshah17/.*
+- pattern: (.*)
+  replacement: jainishshah17/$1
+```
+
+Or the same thing, but only if the image exists in `jainishshah17/`, and allowing all other images:
+```yaml
+rules:
+- pattern: ^jainishshah17/.*
+- pattern: (.*)
+  replacement: jainishshah17/$1
+  condition: Exists
+- pattern: .*
+```
+
+Allow the nginx image, but rewrite everything else:
+```yaml
+rules:
+- pattern: ^nginx(:.*)?$
+- pattern: (?:jainishshah17)?(.*)
+  replacement: jainishshah17/$1
+```
