@@ -302,6 +302,8 @@ func runMockRegistry() func() {
 		httpmock.NewStringResponder(http.StatusOK, `{}`))
 	httpmock.RegisterResponder("GET", "https://index.docker.io/v2/library/nginx/manifests/latest",
 		httpmock.NewStringResponder(http.StatusOK, `{}`))
+	httpmock.RegisterResponder("GET", "https://index.docker.io/v2/jainishshah17/nginx/manifests/latest",
+		httpmock.NewStringResponder(http.StatusOK, `{}`))
 	httpmock.RegisterResponder("GET", "https://index.docker.io/v2/jainishshah17/nginx/manifests/notexist",
 		httpmock.NewStringResponder(http.StatusNotFound, `{"errors":[{"code":"MANIFEST_UNKNOWN","message":"manifest unknown","detail":{"Tag":"notexist"}}]}`))
 	return httpmock.DeactivateAndReset

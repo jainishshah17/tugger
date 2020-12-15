@@ -10,8 +10,12 @@ import (
 var defaultPolicy = `
 rules:
 - pattern: ^jainishshah17/.*
+  condition: Exists
+- pattern: nomatch/(.*)
+  replacement: jainishshah17/$1
 - pattern: (.*)
   replacement: jainishshah17/$1
+  condition: Exists
 `
 
 var invalidCondition = `
@@ -86,27 +90,35 @@ func TestPolicy_Load(t *testing.T) {
 
 func TestPolicy_MutateImage(t *testing.T) {
 	tests := []struct {
-		name  string
-		in    []byte
-		image string
-		want  string
-		want1 bool
+		name    string
+		in      []byte
+		image   string
+		want    string
+		allowed bool
 	}{
 		{
-			name:  "happy noop",
-			in:    []byte(defaultPolicy),
-			image: "jainishshah17/nginx",
-			want:  "jainishshah17/nginx",
-			want1: true,
+			name:    "happy noop",
+			in:      []byte(defaultPolicy),
+			image:   "jainishshah17/nginx",
+			want:    "jainishshah17/nginx",
+			allowed: true,
 		},
 		{
-			name:  "happy mutate",
-			in:    []byte(defaultPolicy),
-			image: "nginx",
-			want:  "jainishshah17/nginx",
-			want1: true,
+			name:    "happy mutate",
+			in:      []byte(defaultPolicy),
+			image:   "nginx",
+			want:    "jainishshah17/nginx",
+			allowed: true,
+		},
+		{
+			name:    "doesn't exist",
+			in:      []byte(defaultPolicy),
+			image:   "jainishshah17/nginx:notexist",
+			want:    "jainishshah17/nginx:notexist",
+			allowed: false,
 		},
 	}
+	defer runMockRegistry()()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p, err := NewPolicy()
@@ -114,12 +126,12 @@ func TestPolicy_MutateImage(t *testing.T) {
 				t.Error(err)
 			}
 			p.Load(tt.in)
-			got, got1 := p.MutateImage(tt.image)
+			got, allowed := p.MutateImage(tt.image)
 			if got != tt.want {
 				t.Errorf("Policy.MutateImage() got = %v, want %v", got, tt.want)
 			}
-			if got1 != tt.want1 {
-				t.Errorf("Policy.MutateImage() got1 = %v, want %v", got1, tt.want1)
+			if allowed != tt.allowed {
+				t.Errorf("Policy.MutateImage() allowed = %v, want %v", allowed, tt.allowed)
 			}
 		})
 	}
@@ -144,7 +156,14 @@ func TestPolicy_ValidateImage(t *testing.T) {
 			image: "nginx",
 			want:  false,
 		},
+		{
+			name:  "doesn't exist",
+			in:    []byte(defaultPolicy),
+			image: "jainishshah17/nginx:notexist",
+			want:  false,
+		},
 	}
+	defer runMockRegistry()()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p, err := NewPolicy()
