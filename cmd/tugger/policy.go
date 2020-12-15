@@ -42,6 +42,7 @@ func (p *Policy) Load(in []byte) error {
 			return fmt.Errorf("condition must be null/Always (default) or Exists, not %s", rule.Condition)
 		}
 	}
+	log.WithField("policy", string(in)).Print("loaded policy")
 	return nil
 }
 
