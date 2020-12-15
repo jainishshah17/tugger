@@ -36,6 +36,7 @@ import (
 var (
 	ifExists    bool
 	log         *logrus.Logger
+	policy      *Policy
 	tlsCertFile string
 	tlsKeyFile  string
 )
@@ -64,11 +65,19 @@ type SlackRequestBody struct {
 func main() {
 	flag.BoolVar(&ifExists, "if-exists", false, "makes the mutation conditional on whether the mutated image name exists in the registry")
 	logLevel := flag.String("log-level", "info", "log verbosity")
+	policyFile := flag.String("policy-file", "", "YAML file defining allowed image name patterns (see readme)")
 	flag.StringVar(&tlsCertFile, "tls-cert", "/etc/admission-controller/tls/tls.crt", "TLS certificate file.")
 	flag.StringVar(&tlsKeyFile, "tls-key", "/etc/admission-controller/tls/tls.key", "TLS key file.")
 	flag.Parse()
 
 	log = logging.New(*logLevel)
+
+	if *policyFile != "" {
+		var err error
+		if policy, err = NewPolicy(WithConfigFile(*policyFile)); err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	http.HandleFunc("/ping", healthCheck)
 	http.HandleFunc("/mutate", mutateAdmissionReviewHandler)
@@ -241,6 +250,17 @@ func imageExists(image string) bool {
 func handleContainer(container *v1.Container, dockerRegistryUrl string) bool {
 	log.Println("Container Image is", container.Image)
 
+	if policy != nil {
+		originalImage := container.Image
+		container.Image, _ = policy.MutateImage(container.Image)
+		if originalImage != container.Image {
+			log.Println("Changing image from", originalImage, "to", container.Image)
+			return true
+		}
+		return false
+	}
+
+	// backwards compatibility when policy is undefined
 	if containsRegisty(whitelistedRegistries, container.Image) {
 		log.Printf("Image is being pulled from Private Registry: %s", container.Image)
 		return false
@@ -295,28 +315,23 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Handle containers
-		for _, container := range pod.Spec.Containers {
-			log.Println("Container Image is", container.Image)
-
-			if !containsRegisty(whitelistedRegistries, container.Image) {
-				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
-				log.Printf(message)
-				SendSlackNotification(message)
-				admissionResponse.Allowed = false
-				admissionResponse.Result = getInvalidContainerResponse(message)
-				goto done
-			} else {
-				log.Printf("Image is being pulled from Private Registry: %s", container.Image)
-				admissionResponse.Allowed = true && admissionResponse.Allowed
+		var validateImage func(string) bool
+		if policy != nil {
+			validateImage = policy.ValidateImage
+		} else {
+			// backwards compatibility when policy is undefined
+			validateImage = func(image string) bool {
+				return containsRegisty(whitelistedRegistries, image)
 			}
 		}
 
-		// Handle init containers
-		for _, container := range pod.Spec.InitContainers {
-			log.Println("Init Container Image is", container.Image)
-
-			if !containsRegisty(whitelistedRegistries, container.Image) {
+		// Handle containers
+		containers := []v1.Container{}
+		containers = append(containers, pod.Spec.Containers...)
+		containers = append(containers, pod.Spec.InitContainers...)
+		for _, container := range containers {
+			log.Println("Container Image is", container.Image)
+			if !validateImage(container.Image) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
 				SendSlackNotification(message)

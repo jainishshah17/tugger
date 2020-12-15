@@ -47,6 +47,7 @@ func (p *Policy) Load(in []byte) error {
 
 // MutateImage transforms the image name according to the policy, or returns false if there were no matches
 func (p *Policy) MutateImage(image string) (string, bool) {
+	var msg string
 	for _, rule := range p.Rules {
 		if rule.re.MatchString(image) {
 			image := image
@@ -54,10 +55,16 @@ func (p *Policy) MutateImage(image string) (string, bool) {
 				image = rule.re.ReplaceAllString(image, rule.Replacement)
 			}
 			if rule.Condition == "Exists" && !imageExists(image) {
+				msg = fmt.Sprintf("%s does not exist in private registry", image)
+				log.Debug(msg)
 				continue
 			}
 			return image, true
 		}
+	}
+	if msg != "" {
+		log.Print(msg)
+		SendSlackNotification(msg)
 	}
 	return image, false
 }
