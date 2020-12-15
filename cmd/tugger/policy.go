@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"regexp"
 
 	yaml "gopkg.in/yaml.v2"
@@ -19,6 +20,9 @@ type Pattern struct {
 type Policy struct {
 	Rules []*Pattern
 }
+
+// PolicyOption options for NewPolicy()
+type PolicyOption func(p *Policy) error
 
 // Load loads a policy from YAML
 func (p *Policy) Load(in []byte) error {
@@ -65,6 +69,23 @@ func (p *Policy) ValidateImage(image string) bool {
 }
 
 // NewPolicy creates a Policy
-func NewPolicy() *Policy {
-	return &Policy{}
+func NewPolicy(opts ...PolicyOption) (*Policy, error) {
+	p := &Policy{}
+	for _, opt := range opts {
+		if err := opt(p); err != nil {
+			return nil, err
+		}
+	}
+	return p, nil
+}
+
+// WithConfigFile loads a policy from a yaml file
+func WithConfigFile(filename string) PolicyOption {
+	return func(p *Policy) error {
+		in, err := ioutil.ReadFile(filename)
+		if err != nil {
+			return err
+		}
+		return p.Load(in)
+	}
 }
