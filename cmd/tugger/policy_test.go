@@ -76,6 +76,13 @@ func TestPolicy_Load(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "empty rules",
+			args: args{
+				in: []byte(`rules: []`),
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -29,6 +29,9 @@ func (p *Policy) Load(in []byte) error {
 	if err := yaml.Unmarshal(in, p); err != nil {
 		return err
 	}
+	if len(p.Rules) == 0 {
+		return fmt.Errorf("policy rules must be non-empty slice")
+	}
 	for _, rule := range p.Rules {
 		var err error
 		if rule.re, err = regexp.Compile(rule.Pattern); err != nil {
