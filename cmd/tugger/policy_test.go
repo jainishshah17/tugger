@@ -11,6 +11,8 @@ var defaultPolicy = `
 rules:
 - pattern: ^jainishshah17/.*
   condition: Exists
+- pattern: always
+  condition: Always
 - pattern: nomatch/(.*)
   replacement: jainishshah17/$1
 - pattern: (.*)
@@ -108,6 +110,13 @@ func TestPolicy_MutateImage(t *testing.T) {
 			in:      []byte(defaultPolicy),
 			image:   "nginx",
 			want:    "jainishshah17/nginx",
+			allowed: true,
+		},
+		{
+			name:    "happy always",
+			in:      []byte(defaultPolicy),
+			image:   "always",
+			want:    "always",
 			allowed: true,
 		},
 		{
