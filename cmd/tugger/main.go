@@ -75,7 +75,7 @@ func main() {
 	if *policyFile != "" {
 		var err error
 		if policy, err = NewPolicy(WithConfigFile(*policyFile)); err != nil {
-			log.Fatal(err)
+			log.WithError(err).WithField("policy-file", *policyFile).Fatal("failed to load policy file")
 		}
 	}
 
@@ -289,7 +289,7 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.WithError(err).WithField("body", string(data)).Error("could not parse request")
+		log.WithError(err).WithField("body", string(data)).Error("could not read request")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -411,7 +411,7 @@ func SendSlackNotification(msg string) {
 		slackBody, _ := json.Marshal(SlackRequestBody{Text: msg})
 		req, err := http.NewRequest(http.MethodPost, webhookUrl, bytes.NewBuffer(slackBody))
 		if err != nil {
-			log.WithError(err).Error("got error from Slack")
+			log.WithError(err).Error("unable to build slack request")
 		}
 
 		req.Header.Add("Content-Type", "application/json")
