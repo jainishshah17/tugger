@@ -31,7 +31,7 @@ jobs:
         uses: azure/setup-helm@v1
 
       - name: Lint Chart
-        run: helm lint chart/*
+        run: helm lint chart/* -f chart/*/ci/lint-values.yaml
 
       - name: Build
         run: docker build . -t $IMAGE
