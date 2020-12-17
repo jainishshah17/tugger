@@ -1,0 +1,23 @@
+# enables optional features in the chart so they will be linted in the PR test
+createValidatingWebhook: true
+createMutatingWebhook: true
+env: prod
+docker:
+  ifExists: true
+image:
+  pullSecret: foo
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+rules:
+  - pattern: ^jainishshah17/.*
+  - pattern: (.*)
+    replacement: jainishshah17/$1
+whitelistRegistries:
+  - jainishshah17
+  - 10.110.50.0:5000
+  - docker.artifactory.com
