@@ -28,8 +28,18 @@ service:
   port: 443
 
 docker:
+  ifExists: false
   registryUrl: jainishshah17
   registrySecret: regsecret
+
+# Use regex patterns for image name matching and replacement. See readme.
+# Disables/replaces docker.registryUrl and docker.ifExists.
+rules: []
+# Disabled for backwards compatibility.
+# Configuring this section is recommended for new installations.
+# - pattern: ^jainishshah17/.*
+# - pattern: (.*)
+#   replacement: jainishshah17/$1
 
 # Whitelist namespaces e.g "[kubesystem,default,development]"
 whitelistNamespaces:

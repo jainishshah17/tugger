@@ -18,23 +18,31 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/infobloxopen/atlas-app-toolkit/logging"
+	"github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
+	ifExists    bool
+	log         *logrus.Logger
+	policy      *Policy
 	tlsCertFile string
 	tlsKeyFile  string
 )
 
 var (
+	env                   = os.Getenv("ENV")
 	dockerRegistryUrl     = os.Getenv("DOCKER_REGISTRY_URL")
 	registrySecretName    = os.Getenv("REGISTRY_SECRET_NAME")
 	whitelistRegistries   = os.Getenv("WHITELIST_REGISTRIES")
@@ -55,9 +63,21 @@ type SlackRequestBody struct {
 }
 
 func main() {
+	flag.BoolVar(&ifExists, "if-exists", false, "makes the mutation conditional on whether the mutated image name exists in the registry")
+	logLevel := flag.String("log-level", "info", "log verbosity")
+	policyFile := flag.String("policy-file", "", "YAML file defining allowed image name patterns (see readme)")
 	flag.StringVar(&tlsCertFile, "tls-cert", "/etc/admission-controller/tls/tls.crt", "TLS certificate file.")
 	flag.StringVar(&tlsKeyFile, "tls-key", "/etc/admission-controller/tls/tls.key", "TLS key file.")
 	flag.Parse()
+
+	log = logging.New(*logLevel)
+
+	if *policyFile != "" {
+		var err error
+		if policy, err = NewPolicy(WithConfigFile(*policyFile)); err != nil {
+			log.WithError(err).WithField("policy-file", *policyFile).Fatal("failed to load policy file")
+		}
+	}
 
 	http.HandleFunc("/ping", healthCheck)
 	http.HandleFunc("/mutate", mutateAdmissionReviewHandler)
@@ -78,7 +98,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).WithField("body", string(data)).Error("could not parse request")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -87,13 +107,13 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 
 	ar := v1beta1.AdmissionReview{}
 	if err := json.Unmarshal(data, &ar); err != nil || ar.Request == nil {
-		log.Println(err)
+		log.WithError(err).WithField("body", string(data)).Error("could not parse request")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	namespace := ar.Request.Namespace
-	log.Printf("AdmissionReview Namespace is: %s", namespace)
+	log.Debugf("AdmissionReview Namespace is: %s", namespace)
 
 	admissionResponse := v1beta1.AdmissionResponse{Allowed: false}
 	patches := []patch{}
@@ -101,7 +121,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 	pod := v1.Pod{}
 	if !contains(whitelistedNamespaces, namespace) {
 		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
-			log.Println(err)
+			log.WithError(err).WithField("object", ar.Request.Object.Raw).Error("could unmarshal pod spec")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -186,8 +206,8 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 
 		patchContent, err := json.Marshal(patches)
 		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusBadRequest)
+			log.WithError(err).WithField("patches", patches).Error("could not marshal patches")
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
@@ -202,7 +222,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 
 	data, err = json.Marshal(ar)
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).WithField("resp", ar).Error("could not marshal response")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -211,23 +231,55 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+// imageExists verifies an image exists in the remote registry
+func imageExists(image string) bool {
+	ref, err := name.ParseReference(image)
+	if err != nil {
+		log.WithError(err).WithField("image", image).Error("could not parse image")
+		return false
+	}
+
+	if _, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain)); err != nil {
+		log.WithError(err).WithField("image", image).Error("could not fetch image")
+		return false
+	}
+
+	return true
+}
+
 func handleContainer(container *v1.Container, dockerRegistryUrl string) bool {
 	log.Println("Container Image is", container.Image)
 
-	if !containsRegisty(whitelistedRegistries, container.Image) {
-		message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
-		log.Printf(message)
-
-		newImage := dockerRegistryUrl + "/" + container.Image
-		log.Printf("Changing image registry to: %s", newImage)
-		SendSlackNotification("Changing image registry to: " + newImage + " from: " + container.Image)
-
-		container.Image = newImage
-		return true
-	} else {
-		log.Printf("Image is being pulled from Private Registry: %s", container.Image)
+	if policy != nil {
+		originalImage := container.Image
+		container.Image, _ = policy.MutateImage(container.Image)
+		if originalImage != container.Image {
+			log.Println("Changing image from", originalImage, "to", container.Image)
+			return true
+		}
+		return false
 	}
-	return false
+
+	// backwards compatibility when policy is undefined
+	if containsRegisty(whitelistedRegistries, container.Image) {
+		log.Printf("Image is being pulled from Private Registry: %s", container.Image)
+		return false
+	}
+	message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
+	log.Printf(message)
+
+	newImage := dockerRegistryUrl + "/" + container.Image
+	if ifExists && !imageExists(newImage) {
+		message := fmt.Sprintf("%s does not exist in private registry, skipping patching of %s", newImage, container.Name)
+		log.Print(message)
+		SendSlackNotification(message)
+		return false
+	}
+
+	log.Println("Changing image from", container.Image, "to", newImage)
+
+	container.Image = newImage
+	return true
 }
 
 func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
@@ -237,7 +289,7 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err)
+		log.WithError(err).WithField("body", string(data)).Error("could not read request")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -246,45 +298,40 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 
 	ar := v1beta1.AdmissionReview{}
 	if err := json.Unmarshal(data, &ar); err != nil {
-		log.Println(err)
+		log.WithError(err).WithField("body", string(data)).Error("could not parse request")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	namespace := ar.Request.Namespace
-	log.Printf("AdmissionReview Namespace is: %s", namespace)
+	log.Debugf("AdmissionReview Namespace is: %s", namespace)
 
 	admissionResponse := v1beta1.AdmissionResponse{Allowed: true}
 	if !contains(whitelistedNamespaces, namespace) {
 		pod := v1.Pod{}
 		if err := json.Unmarshal(ar.Request.Object.Raw, &pod); err != nil {
-			log.Println(err)
+			log.WithError(err).WithField("object", ar.Request.Object.Raw).Error("could unmarshal pod spec")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
-		// Handle containers
-		for _, container := range pod.Spec.Containers {
-			log.Println("Container Image is", container.Image)
-
-			if !containsRegisty(whitelistedRegistries, container.Image) {
-				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
-				log.Printf(message)
-				SendSlackNotification(message)
-				admissionResponse.Allowed = false
-				admissionResponse.Result = getInvalidContainerResponse(message)
-				goto done
-			} else {
-				log.Printf("Image is being pulled from Private Registry: %s", container.Image)
-				admissionResponse.Allowed = true && admissionResponse.Allowed
+		var validateImage func(string) bool
+		if policy != nil {
+			validateImage = policy.ValidateImage
+		} else {
+			// backwards compatibility when policy is undefined
+			validateImage = func(image string) bool {
+				return containsRegisty(whitelistedRegistries, image)
 			}
 		}
 
-		// Handle init containers
-		for _, container := range pod.Spec.InitContainers {
-			log.Println("Init Container Image is", container.Image)
-
-			if !containsRegisty(whitelistedRegistries, container.Image) {
+		// Handle containers
+		containers := []v1.Container{}
+		containers = append(containers, pod.Spec.Containers...)
+		containers = append(containers, pod.Spec.InitContainers...)
+		for _, container := range containers {
+			log.Println("Container Image is", container.Image)
+			if !validateImage(container.Image) {
 				message := fmt.Sprintf("Image is not being pulled from Private Registry: %s", container.Image)
 				log.Printf(message)
 				SendSlackNotification(message)
@@ -350,7 +397,7 @@ func containsRegisty(arr []string, str string) bool {
 
 // ping responds to the request with a plain-text "Ok" message.
 func healthCheck(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Serving request: %s", r.URL.Path)
+	log.Debugf("Serving request: %s", r.URL.Path)
 	fmt.Fprintf(w, "Ok")
 }
 
@@ -358,10 +405,13 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 // some text and the slack channel is saved within Slack.
 func SendSlackNotification(msg string) {
 	if webhookUrl != "" {
+		if env != "" {
+			msg = fmt.Sprintf("[%s] %s", env, msg)
+		}
 		slackBody, _ := json.Marshal(SlackRequestBody{Text: msg})
 		req, err := http.NewRequest(http.MethodPost, webhookUrl, bytes.NewBuffer(slackBody))
 		if err != nil {
-			log.Println(err)
+			log.WithError(err).Error("unable to build slack request")
 		}
 
 		req.Header.Add("Content-Type", "application/json")
@@ -369,16 +419,16 @@ func SendSlackNotification(msg string) {
 		client := &http.Client{Timeout: 10 * time.Second}
 		resp, err := client.Do(req)
 		if err != nil {
-			log.Println(err)
+			log.WithError(err).Error("got error from Slack")
 		}
 
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(resp.Body)
 		if buf.String() != "ok" {
-			log.Println("Non-ok response returned from Slack")
+			log.WithField("resp", buf.String()).Errorln("Non-ok response returned from Slack")
 		}
 		defer resp.Body.Close()
 	} else {
-		log.Println("Slack Webhook URL is not provided")
+		log.Debugln("Slack Webhook URL is not provided")
 	}
 }

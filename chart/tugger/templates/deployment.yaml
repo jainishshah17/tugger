@@ -30,7 +30,20 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - /tugger
+            {{- if .Values.docker.ifExists }}
+            - --if-exists
+            {{- end }}
+            {{- if .Values.rules }}
+            - --policy-file
+            - /etc/tugger/policy.yaml
+            {{- end }}
           env:
+            {{- with .Values.env }}
+            - name: ENV
+              value: {{ . }}
+            {{- end }}
             - name: DOCKER_REGISTRY_URL
               value: {{ .Values.docker.registryUrl }}
             - name: REGISTRY_SECRET_NAME
@@ -46,6 +59,14 @@ spec:
               containerPort: 443
               protocol: TCP
           volumeMounts:
+          {{- if .Values.rules }}
+          - name: policy
+            mountPath: /etc/tugger
+          {{- end }}
+          {{- if and .Values.docker.ifExists .Values.image.pullSecret }}
+          - name: pullsecret
+            mountPath: /root/.docker/
+          {{- end }}
           - name: tls
             mountPath: /etc/admission-controller/tls
           resources:
@@ -71,6 +92,19 @@ spec:
 {{ toYaml . | indent 8 }}
     {{- end }}
       volumes:
+        {{- if .Values.rules }}
+        - name: policy
+          configMap:
+            name: {{ template "tugger.fullname" . }}
+        {{- end }}
+        {{- with .Values.image.pullSecret }}
+        - name: pullsecret
+          secret:
+            secretName: {{ . }}
+            items:
+              - key: .dockerconfigjson
+                path: config.json
+        {{- end }}
         - name: tls
           secret:
             secretName: {{ default (printf "%s-cert" (include "tugger.fullname" . )) .Values.tls.secretName }}

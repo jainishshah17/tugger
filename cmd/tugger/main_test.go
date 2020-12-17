@@ -12,11 +12,13 @@
 package main
 
 import (
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/infobloxopen/atlas-app-toolkit/logging"
+	"github.com/jarcoal/httpmock"
 )
 
 const (
@@ -169,22 +171,13 @@ const (
 		}`
 )
 
-func TestHandler(t *testing.T) {
-	dockerRegistryUrl = trustedRegistry
-	whitelistNamespaces = "kube-system"
-	whitelistRegistries = dockerRegistryUrl
-	whitelistedNamespaces = strings.Split(whitelistNamespaces, ",")
-	whitelistedRegistries = strings.Split(whitelistRegistries, ",")
-	type args struct {
-		w http.ResponseWriter
-		r *http.Request
-	}
-	tests := []struct {
+var (
+	testCases = []struct {
 		name         string
 		handler      func(http.ResponseWriter, *http.Request)
 		reqMethod    string
 		reqPath      string
-		reqBody      io.Reader
+		reqBody      string
 		expectStatus int
 		expectBody   string
 	}{
@@ -199,7 +192,7 @@ func TestHandler(t *testing.T) {
 			handler:      mutateAdmissionReviewHandler,
 			reqMethod:    "POST",
 			reqPath:      "/mutate",
-			reqBody:      strings.NewReader(`{}`),
+			reqBody:      `{}`,
 			expectStatus: http.StatusBadRequest,
 		},
 		{
@@ -207,7 +200,7 @@ func TestHandler(t *testing.T) {
 			handler:      mutateAdmissionReviewHandler,
 			reqMethod:    "POST",
 			reqPath:      "/mutate",
-			reqBody:      strings.NewReader(string(untrustedAdmissionRequest)),
+			reqBody:      string(untrustedAdmissionRequest),
 			expectStatus: http.StatusOK,
 			expectBody:   `{"response":{"uid":"","allowed":true,"patch":"W3sib3AiOiJhZGQiLCJwYXRoIjoiL21ldGFkYXRhL2Fubm90YXRpb25zIiwidmFsdWUiOnt9fSx7Im9wIjoicmVwbGFjZSIsInBhdGgiOiIvc3BlYy9jb250YWluZXJzLzAvaW1hZ2UiLCJ2YWx1ZSI6InByaXZhdGUtcmVnaXN0cnkuY2x1c3Rlci5sb2NhbC9uZ2lueCJ9LHsib3AiOiJhZGQiLCJwYXRoIjoiL21ldGFkYXRhL2Fubm90YXRpb25zL3R1Z2dlci1vcmlnaW5hbC1pbWFnZS0wIiwidmFsdWUiOiJuZ2lueCJ9LHsib3AiOiJyZXBsYWNlIiwicGF0aCI6Ii9zcGVjL2NvbnRhaW5lcnMvMS9pbWFnZSIsInZhbHVlIjoicHJpdmF0ZS1yZWdpc3RyeS5jbHVzdGVyLmxvY2FsL215c3FsIn0seyJvcCI6ImFkZCIsInBhdGgiOiIvbWV0YWRhdGEvYW5ub3RhdGlvbnMvdHVnZ2VyLW9yaWdpbmFsLWltYWdlLTEiLCJ2YWx1ZSI6Im15c3FsIn0seyJvcCI6InJlcGxhY2UiLCJwYXRoIjoiL3NwZWMvaW5pdENvbnRhaW5lcnMvMC9pbWFnZSIsInZhbHVlIjoicHJpdmF0ZS1yZWdpc3RyeS5jbHVzdGVyLmxvY2FsL25naW54In0seyJvcCI6ImFkZCIsInBhdGgiOiIvbWV0YWRhdGEvYW5ub3RhdGlvbnMvdHVnZ2VyLW9yaWdpbmFsLWluaXQtaW1hZ2UtMCIsInZhbHVlIjoibmdpbngifSx7Im9wIjoicmVwbGFjZSIsInBhdGgiOiIvc3BlYy9pbml0Q29udGFpbmVycy8xL2ltYWdlIiwidmFsdWUiOiJwcml2YXRlLXJlZ2lzdHJ5LmNsdXN0ZXIubG9jYWwvbXlzcWwifSx7Im9wIjoiYWRkIiwicGF0aCI6Ii9tZXRhZGF0YS9hbm5vdGF0aW9ucy90dWdnZXItb3JpZ2luYWwtaW5pdC1pbWFnZS0xIiwidmFsdWUiOiJteXNxbCJ9LHsib3AiOiJhZGQiLCJwYXRoIjoiL21ldGFkYXRhL2xhYmVscyIsInZhbHVlIjp7fX0seyJvcCI6ImFkZCIsInBhdGgiOiIvc3BlYy9pbWFnZVB1bGxTZWNyZXRzIiwidmFsdWUiOlt7fV19LHsib3AiOiJhZGQiLCJwYXRoIjoiL21ldGFkYXRhL2xhYmVscy90dWdnZXItbW9kaWZpZWQiLCJ2YWx1ZSI6InRydWUifV0=","patchType":"JSONPatch"}}`,
 		},
@@ -216,7 +209,7 @@ func TestHandler(t *testing.T) {
 			handler:      mutateAdmissionReviewHandler,
 			reqMethod:    "POST",
 			reqPath:      "/mutate",
-			reqBody:      strings.NewReader(string(trustedAdmissionRequest)),
+			reqBody:      string(trustedAdmissionRequest),
 			expectStatus: http.StatusOK,
 			expectBody:   `{"response":{"uid":"","allowed":true}}`,
 		},
@@ -225,7 +218,7 @@ func TestHandler(t *testing.T) {
 			handler:      mutateAdmissionReviewHandler,
 			reqMethod:    "POST",
 			reqPath:      "/mutate",
-			reqBody:      strings.NewReader(string(whitelistedAdmissionRequest)),
+			reqBody:      string(whitelistedAdmissionRequest),
 			expectStatus: http.StatusOK,
 			expectBody:   `{"response":{"uid":"","allowed":true}}`,
 		},
@@ -234,7 +227,7 @@ func TestHandler(t *testing.T) {
 			handler:      validateAdmissionReviewHandler,
 			reqMethod:    "POST",
 			reqPath:      "/validate",
-			reqBody:      strings.NewReader(string(untrustedAdmissionRequest)),
+			reqBody:      string(untrustedAdmissionRequest),
 			expectStatus: http.StatusOK,
 			expectBody:   `{"response":{"uid":"","allowed":false,"status":{"metadata":{},"reason":"Invalid","details":{"causes":[{"message":"Image is not being pulled from Private Registry: nginx"}]}}}}`,
 		},
@@ -243,7 +236,7 @@ func TestHandler(t *testing.T) {
 			handler:      validateAdmissionReviewHandler,
 			reqMethod:    "POST",
 			reqPath:      "/validate",
-			reqBody:      strings.NewReader(string(mixedTrustAdmissionRequest)),
+			reqBody:      string(mixedTrustAdmissionRequest),
 			expectStatus: http.StatusOK,
 			expectBody:   `{"response":{"uid":"","allowed":false,"status":{"metadata":{},"reason":"Invalid","details":{"causes":[{"message":"Image is not being pulled from Private Registry: mysql"}]}}}}`,
 		},
@@ -252,7 +245,7 @@ func TestHandler(t *testing.T) {
 			handler:      validateAdmissionReviewHandler,
 			reqMethod:    "POST",
 			reqPath:      "/validate",
-			reqBody:      strings.NewReader(string(trustedAdmissionRequest)),
+			reqBody:      string(trustedAdmissionRequest),
 			expectStatus: http.StatusOK,
 			expectBody:   `{"response":{"uid":"","allowed":true}}`,
 		},
@@ -261,14 +254,40 @@ func TestHandler(t *testing.T) {
 			handler:      validateAdmissionReviewHandler,
 			reqMethod:    "POST",
 			reqPath:      "/validate",
-			reqBody:      strings.NewReader(string(whitelistedAdmissionRequest)),
+			reqBody:      string(whitelistedAdmissionRequest),
 			expectStatus: http.StatusOK,
 			expectBody:   `{"response":{"uid":"","allowed":true}}`,
 		},
 	}
-	for _, tt := range tests {
+)
+
+func TestHandlerLegacy(t *testing.T) {
+	dockerRegistryUrl = trustedRegistry
+	whitelistRegistries = dockerRegistryUrl
+	whitelistedRegistries = strings.Split(whitelistRegistries, ",")
+	testHandler(t)
+}
+
+func TestHandlerPolicy(t *testing.T) {
+	policy, _ = NewPolicy()
+	policy.Load([]byte(`
+rules:
+- pattern: ^` + trustedRegistry + `/.*
+- pattern: (.*)
+  replacement: ` + trustedRegistry + `/$1
+`))
+	defer func() {
+		policy = nil
+	}()
+	testHandler(t)
+}
+
+func testHandler(t *testing.T) {
+	whitelistNamespaces = "kube-system"
+	whitelistedNamespaces = strings.Split(whitelistNamespaces, ",")
+	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			req, err := http.NewRequest(tt.reqMethod, tt.reqPath, tt.reqBody)
+			req, err := http.NewRequest(tt.reqMethod, tt.reqPath, strings.NewReader(tt.reqBody))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -291,4 +310,53 @@ func TestHandler(t *testing.T) {
 			}
 		})
 	}
+}
+
+func runMockRegistry() func() {
+	httpmock.Activate()
+	httpmock.RegisterResponder("GET", "https://index.docker.io/v2/",
+		httpmock.NewStringResponder(http.StatusOK, `{}`))
+	httpmock.RegisterResponder("GET", "https://index.docker.io/v2/library/nginx/manifests/latest",
+		httpmock.NewStringResponder(http.StatusOK, `{}`))
+	httpmock.RegisterResponder("GET", "https://index.docker.io/v2/jainishshah17/nginx/manifests/latest",
+		httpmock.NewStringResponder(http.StatusOK, `{}`))
+	httpmock.RegisterResponder("GET", "https://index.docker.io/v2/jainishshah17/nginx/manifests/notexist",
+		httpmock.NewStringResponder(http.StatusNotFound, `{"errors":[{"code":"MANIFEST_UNKNOWN","message":"manifest unknown","detail":{"Tag":"notexist"}}]}`))
+	return httpmock.DeactivateAndReset
+}
+
+func Test_imageExists(t *testing.T) {
+	tests := []struct {
+		name  string
+		image string
+		want  bool
+	}{
+		{
+			name:  "happy",
+			image: "nginx",
+			want:  true,
+		},
+		{
+			name:  "doesn't exist",
+			image: "jainishshah17/nginx:notexist",
+			want:  false,
+		},
+		{
+			name:  "doesn't parse",
+			image: "doesn't parse",
+			want:  false,
+		},
+	}
+	defer runMockRegistry()()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := imageExists(tt.image); got != tt.want {
+				t.Errorf("imageExists() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func init() {
+	log = logging.New("debug")
 }
