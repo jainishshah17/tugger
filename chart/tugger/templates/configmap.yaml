@@ -1,0 +1,15 @@
+{{- with .Values.rules }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "tugger.fullname" . }}
+  labels:
+    app: {{ template "tugger.name" . }}
+    chart: {{ template "tugger.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  policy.yaml: |
+    rules:
+      {{- toYaml . | nindent 6 }}
+{{- end }}

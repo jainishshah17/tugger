@@ -35,6 +35,10 @@ spec:
             {{- if .Values.docker.ifExists }}
             - --if-exists
             {{- end }}
+            {{- if .Values.rules }}
+            - --policy-file
+            - /etc/tugger/policy.yaml
+            {{- end }}
           env:
             {{- with .Values.env }}
             - name: ENV
@@ -55,6 +59,10 @@ spec:
               containerPort: 443
               protocol: TCP
           volumeMounts:
+          {{- if .Values.rules }}
+          - name: policy
+            mountPath: /etc/tugger
+          {{- end }}
           {{- if and .Values.docker.ifExists .Values.image.pullSecret }}
           - name: pullsecret
             mountPath: /root/.docker/
@@ -84,6 +92,11 @@ spec:
 {{ toYaml . | indent 8 }}
     {{- end }}
       volumes:
+        {{- if .Values.rules }}
+        - name: policy
+          configMap:
+            name: {{ template "tugger.fullname" . }}
+        {{- end }}
         {{- with .Values.image.pullSecret }}
         - name: pullsecret
           secret:
