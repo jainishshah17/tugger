@@ -1,4 +1,4 @@
-{{- with .Values.rules }}
+{{- if .Values.rules }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -11,5 +11,5 @@ metadata:
 data:
   policy.yaml: |
     rules:
-      {{- toYaml . | nindent 6 }}
+      {{- toYaml .Values.rules | nindent 6 }}
 {{- end }}
