@@ -404,31 +404,32 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 // SendSlackNotification will post to an 'Incoming Webook' url setup in Slack Apps. It accepts
 // some text and the slack channel is saved within Slack.
 func SendSlackNotification(msg string) {
-	if webhookUrl != "" {
-		if env != "" {
-			msg = fmt.Sprintf("[%s] %s", env, msg)
-		}
-		slackBody, _ := json.Marshal(SlackRequestBody{Text: msg})
-		req, err := http.NewRequest(http.MethodPost, webhookUrl, bytes.NewBuffer(slackBody))
-		if err != nil {
-			log.WithError(err).Error("unable to build slack request")
-		}
-
-		req.Header.Add("Content-Type", "application/json")
-
-		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.Do(req)
-		if err != nil {
-			log.WithError(err).Error("got error from Slack")
-		}
-
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(resp.Body)
-		if buf.String() != "ok" {
-			log.WithField("resp", buf.String()).Errorln("Non-ok response returned from Slack")
-		}
-		defer resp.Body.Close()
-	} else {
+	if webhookUrl == "" {
 		log.Debugln("Slack Webhook URL is not provided")
+		return
 	}
+
+	if env != "" {
+		msg = fmt.Sprintf("[%s] %s", env, msg)
+	}
+	slackBody, _ := json.Marshal(SlackRequestBody{Text: msg})
+	req, err := http.NewRequest(http.MethodPost, webhookUrl, bytes.NewBuffer(slackBody))
+	if err != nil {
+		log.WithError(err).Error("unable to build slack request")
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.WithError(err).Error("got error from Slack")
+	}
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(resp.Body)
+	if buf.String() != "ok" {
+		log.WithField("resp", buf.String()).Errorln("Non-ok response returned from Slack")
+	}
+	defer resp.Body.Close()
 }
