@@ -17,6 +17,7 @@ rules:
   - pattern: ^jainishshah17/.*
   - pattern: (.*)
     replacement: jainishshah17/$1
+slackDedupeTTL: 24h
 whitelistRegistries:
   - jainishshah17
   - 10.110.50.0:5000

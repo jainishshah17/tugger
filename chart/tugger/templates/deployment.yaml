@@ -39,6 +39,10 @@ spec:
             - --policy-file
             - /etc/tugger/policy.yaml
             {{- end }}
+            {{- with .Values.slackDedupeTTL }}
+            - --slack-dedupe-ttl
+            - {{ . }}
+            {{- end }}
           env:
             {{- with .Values.env }}
             - name: ENV
