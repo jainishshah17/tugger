@@ -16,12 +16,15 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/infobloxopen/atlas-app-toolkit/logging"
 	"github.com/jarcoal/httpmock"
+	"github.com/patrickmn/go-cache"
 )
 
 const (
+	mockSlackURL            = "https://slack/"
 	trustedRegistry         = "private-registry.cluster.local"
 	trustedAdmissionRequest = `
 	{
@@ -353,6 +356,83 @@ func Test_imageExists(t *testing.T) {
 			if got := imageExists(tt.image); got != tt.want {
 				t.Errorf("imageExists() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func runMockSlack() func() {
+	httpmock.Activate()
+	httpmock.RegisterResponder("POST", mockSlackURL,
+		httpmock.NewStringResponder(http.StatusOK, `ok`))
+	httpmock.RegisterResponder("POST", mockSlackURL+"error",
+		httpmock.NewStringResponder(http.StatusBadRequest, `invalid arguments`))
+	return httpmock.DeactivateAndReset
+}
+
+func TestSendSlackNotification(t *testing.T) {
+	defaultEnv := env
+	defaultSlackDupeCache := slackDupeCache
+	defaultWebhookURL := webhookUrl
+	sharedDupeCache := cache.New(time.Minute, time.Minute)
+	tests := []struct {
+		name           string
+		msg            string
+		env            string
+		slackDupeCache *cache.Cache
+		webhookURL     string
+	}{
+		{
+			name:       "disabled",
+			webhookURL: "",
+		},
+		{
+			name:       "happy",
+			msg:        "foo does not exist in private registry",
+			webhookURL: mockSlackURL,
+		},
+		{
+			name:       "with env",
+			msg:        "foo does not exist in private registry",
+			env:        "dev-1",
+			webhookURL: mockSlackURL,
+		},
+		{
+			name:           "with dupe cache miss",
+			msg:            "foo does not exist in private registry",
+			slackDupeCache: sharedDupeCache,
+			webhookURL:     mockSlackURL,
+		},
+		{
+			name:           "with dupe cache hit",
+			msg:            "foo does not exist in private registry",
+			slackDupeCache: sharedDupeCache,
+			webhookURL:     mockSlackURL,
+		},
+		{
+			name:       "slack connection error",
+			webhookURL: "example.com",
+		},
+		{
+			name:       "slack response error",
+			webhookURL: mockSlackURL + "error",
+		},
+		{
+			name:       "build request error",
+			webhookURL: "://",
+		},
+	}
+	defer runMockSlack()()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env = tt.env
+			slackDupeCache = tt.slackDupeCache
+			webhookUrl = tt.webhookURL
+			defer func() {
+				env = defaultEnv
+				slackDupeCache = defaultSlackDupeCache
+				webhookUrl = defaultWebhookURL
+			}()
+			SendSlackNotification(tt.msg)
 		})
 	}
 }

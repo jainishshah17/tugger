@@ -27,6 +27,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/infobloxopen/atlas-app-toolkit/logging"
+	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/admission/v1beta1"
 	v1 "k8s.io/api/core/v1"
@@ -34,11 +35,13 @@ import (
 )
 
 var (
-	ifExists    bool
-	log         *logrus.Logger
-	policy      *Policy
-	tlsCertFile string
-	tlsKeyFile  string
+	ifExists       bool
+	log            *logrus.Logger
+	policy         *Policy
+	tlsCertFile    string
+	tlsKeyFile     string
+	slackDupeCache *cache.Cache
+	slackDedupeTTL time.Duration
 )
 
 var (
@@ -68,6 +71,7 @@ func main() {
 	policyFile := flag.String("policy-file", "", "YAML file defining allowed image name patterns (see readme)")
 	flag.StringVar(&tlsCertFile, "tls-cert", "/etc/admission-controller/tls/tls.crt", "TLS certificate file.")
 	flag.StringVar(&tlsKeyFile, "tls-key", "/etc/admission-controller/tls/tls.key", "TLS key file.")
+	flag.DurationVar(&slackDedupeTTL, "slack-dedupe-ttl", 3*time.Minute, "drops repeat Slack notifications until this amount of time elapses (requires WEBHOOK_URL defined)")
 	flag.Parse()
 
 	log = logging.New(*logLevel)
@@ -77,6 +81,10 @@ func main() {
 		if policy, err = NewPolicy(WithConfigFile(*policyFile)); err != nil {
 			log.WithError(err).WithField("policy-file", *policyFile).Fatal("failed to load policy file")
 		}
+	}
+
+	if webhookUrl != "" && slackDedupeTTL > 0 {
+		slackDupeCache = cache.New(slackDedupeTTL, 10*time.Minute)
 	}
 
 	http.HandleFunc("/ping", healthCheck)
@@ -404,31 +412,42 @@ func healthCheck(w http.ResponseWriter, r *http.Request) {
 // SendSlackNotification will post to an 'Incoming Webook' url setup in Slack Apps. It accepts
 // some text and the slack channel is saved within Slack.
 func SendSlackNotification(msg string) {
-	if webhookUrl != "" {
-		if env != "" {
-			msg = fmt.Sprintf("[%s] %s", env, msg)
-		}
-		slackBody, _ := json.Marshal(SlackRequestBody{Text: msg})
-		req, err := http.NewRequest(http.MethodPost, webhookUrl, bytes.NewBuffer(slackBody))
-		if err != nil {
-			log.WithError(err).Error("unable to build slack request")
-		}
-
-		req.Header.Add("Content-Type", "application/json")
-
-		client := &http.Client{Timeout: 10 * time.Second}
-		resp, err := client.Do(req)
-		if err != nil {
-			log.WithError(err).Error("got error from Slack")
-		}
-
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(resp.Body)
-		if buf.String() != "ok" {
-			log.WithField("resp", buf.String()).Errorln("Non-ok response returned from Slack")
-		}
-		defer resp.Body.Close()
-	} else {
+	if webhookUrl == "" {
 		log.Debugln("Slack Webhook URL is not provided")
+		return
 	}
+
+	if env != "" {
+		msg = fmt.Sprintf("[%s] %s", env, msg)
+	}
+
+	if slackDupeCache != nil {
+		if err := slackDupeCache.Add(msg, struct{}{}, cache.DefaultExpiration); err != nil {
+			log.Info("suppressing duplicate Slack message")
+			return
+		}
+	}
+
+	slackBody, _ := json.Marshal(SlackRequestBody{Text: msg})
+	req, err := http.NewRequest(http.MethodPost, webhookUrl, bytes.NewBuffer(slackBody))
+	if err != nil {
+		log.WithError(err).Error("unable to build slack request")
+		return
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.WithError(err).Error("got error from Slack")
+		return
+	}
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(resp.Body)
+	if buf.String() != "ok" {
+		log.WithField("resp", buf.String()).Errorln("Non-ok response returned from Slack")
+	}
+	defer resp.Body.Close()
 }
