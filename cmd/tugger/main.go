@@ -416,6 +416,7 @@ func SendSlackNotification(msg string) {
 	req, err := http.NewRequest(http.MethodPost, webhookUrl, bytes.NewBuffer(slackBody))
 	if err != nil {
 		log.WithError(err).Error("unable to build slack request")
+		return
 	}
 
 	req.Header.Add("Content-Type", "application/json")
@@ -424,6 +425,7 @@ func SendSlackNotification(msg string) {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.WithError(err).Error("got error from Slack")
+		return
 	}
 
 	buf := new(bytes.Buffer)
