@@ -58,6 +58,7 @@ tls:
 
 # Slack webhook URL e.g "https://hooks.slack.com/services/X1234"
 webhookUrl:
+slackDedupeTTL: # default: 3m0s, value must be acceptable to time.ParseDuration() https://golang.org/pkg/time/#ParseDuration
 
 # Optional webhook namespace selector based on labels
 # Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#matching-requests-objectselector
