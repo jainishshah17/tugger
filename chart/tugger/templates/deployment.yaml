@@ -67,7 +67,7 @@ spec:
           - name: policy
             mountPath: /etc/tugger
           {{- end }}
-          {{- if and .Values.docker.ifExists .Values.image.pullSecret }}
+          {{- if .Values.image.pullSecret }}
           - name: pullsecret
             mountPath: /root/.docker/
           {{- end }}
