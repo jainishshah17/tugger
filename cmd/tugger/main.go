@@ -197,20 +197,25 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
-		// Add image pull secret and label
-		patches = append(patches, patch{
-			Op:   "add",
-			Path: "/spec/imagePullSecrets",
-			Value: []v1.LocalObjectReference{
-				v1.LocalObjectReference{
-					Name: registrySecretName,
+		// Inject image pull secret
+		if registrySecretName != "" {
+			patches = append(patches, patch{
+				Op:   "add",
+				Path: "/spec/imagePullSecrets",
+				Value: []v1.LocalObjectReference{
+					v1.LocalObjectReference{
+						Name: registrySecretName,
+					},
 				},
-			}},
-			patch{
-				Op:    "add",
-				Path:  "/metadata/labels/tugger-modified",
-				Value: "true",
 			})
+		}
+
+		// Add label
+		patches = append(patches, patch{
+			Op:    "add",
+			Path:  "/metadata/labels/tugger-modified",
+			Value: "true",
+		})
 
 		patchContent, err := json.Marshal(patches)
 		if err != nil {
