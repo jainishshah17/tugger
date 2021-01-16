@@ -21,8 +21,15 @@ jobs:
 
       # Login to docker registry
       - run: docker login -u $USER -p $PASSWORD
+      # Get App version from chat.yaml
+      - run: |
+          set -x
+          git fetch --all --tags
+          sudo pip install yq
+          TARGET_TAG=v$(yq .appVersion -r < chart/tugger/Chart.yaml)
       # Build docker image
       - run: docker build --rm=false -t jainishshah17/tugger:$CIRCLE_BUILD_NUM .
       - run: docker tag jainishshah17/tugger:$CIRCLE_BUILD_NUM jainishshah17/tugger:latest
+      - run: docker tag jainishshah17/tugger:$CIRCLE_BUILD_NUM jainishshah17/tugger:$TARGET_TAG
       - run: docker push jainishshah17/tugger:$CIRCLE_BUILD_NUM
       - run: docker push jainishshah17/tugger:latest
