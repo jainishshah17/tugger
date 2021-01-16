@@ -25,7 +25,7 @@ jobs:
       - run: |
           set -x
           git fetch --all --tags
-          sudo pip install yq
+          pip install yq
           TARGET_TAG=v$(yq .appVersion -r < chart/tugger/Chart.yaml)
       # Build docker image
       - run: docker build --rm=false -t jainishshah17/tugger:$CIRCLE_BUILD_NUM .
