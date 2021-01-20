@@ -3,10 +3,6 @@
 ### What does Tugger do?
 Tugger is Kubernetes Admission webhook to enforce pulling of docker images from private registry.
 
-### Note:
-Tugger has graduated. Tugger's new home is [JFrog/Tugger](https://github.com/jfrog/tugger). 
-JFrog is actively maintaining tugger.
-
 ### Prerequisites
 
 Kubernetes 1.9.0 or above with the `admissionregistration.k8s.io/v1` API enabled. Verify that by the following command:
