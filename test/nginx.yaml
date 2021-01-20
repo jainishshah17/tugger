@@ -25,4 +25,5 @@ spec:
       - name: nginx
         image: nginx
         imagePullPolicy: IfNotPresent
-
+      imagePullSecrets:
+        - name: original-secret

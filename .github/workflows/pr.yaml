@@ -49,8 +49,14 @@ jobs:
       - name: Test Mutation
         timeout-minutes: 1
         run: |
+          function test_jsonpath() {
+            until [ "$1" = "$(kubectl -n nginx get po -l test=tugger -o jsonpath="$2")" ]
+            do
+              echo "test failed \"$1\" = \"$2\""
+              sleep 1
+            done
+          }
           kubectl apply -f test/nginx.yaml
-          until [ "jainishshah17/nginx" = "$(kubectl -n nginx get po -l test=tugger -o jsonpath='{.items[0].spec.containers[0].image}')" ]
-          do
-            sleep 1
-          done
+          test_jsonpath "jainishshah17/nginx" '{.items[0].spec.containers[0].image}'
+          test_jsonpath "original-secret"     '{.items[0].spec.imagePullSecrets[0].name}'
+          test_jsonpath "regsecret"           '{.items[0].spec.imagePullSecrets[1].name}'
