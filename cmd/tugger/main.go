@@ -199,14 +199,19 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Inject image pull secret
 		if registrySecretName != "" {
+			imagePullSecrets := pod.Spec.ImagePullSecrets
+			if imagePullSecrets == nil {
+				imagePullSecrets = []v1.LocalObjectReference{}
+			}
+			imagePullSecrets = append(imagePullSecrets,
+				v1.LocalObjectReference{
+					Name: registrySecretName,
+				},
+			)
 			patches = append(patches, patch{
 				Op:   "add",
 				Path: "/spec/imagePullSecrets",
-				Value: []v1.LocalObjectReference{
-					v1.LocalObjectReference{
-						Name: registrySecretName,
-					},
-				},
+				Value: imagePullSecrets,
 			})
 		}
 
