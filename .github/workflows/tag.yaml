@@ -1,0 +1,18 @@
+name: Create Tag
+on:
+  push:
+    branches:
+      - master
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: create tag
+        run: |
+          set -x
+          git fetch --all --tags
+          sudo pip install yq
+          TARGET_TAG=v$(yq .version -r < chart/tugger/Chart.yaml)
+          git tag $TARGET_TAG || exit 0
+          git push origin $TARGET_TAG
