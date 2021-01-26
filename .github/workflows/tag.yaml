@@ -6,9 +6,12 @@ on:
 jobs:
   tag:
     runs-on: ubuntu-latest
+    env:
+      upstream: jainishshah17/tugger
     steps:
       - uses: actions/checkout@v2
       - name: create tag
+        if: github.repository == env.upstream
         run: |
           set -x
           git fetch --all --tags
@@ -16,3 +19,9 @@ jobs:
           TARGET_TAG=v$(yq .version -r < chart/tugger/Chart.yaml)
           git tag $TARGET_TAG || exit 0
           git push origin $TARGET_TAG
+      - name: sync tags
+        if: github.repository != env.upstream
+        run: |
+          set -x
+          git fetch --tags https://github.com/${{ env.upstream }}.git
+          git push --tags
