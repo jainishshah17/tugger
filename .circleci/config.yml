@@ -30,5 +30,6 @@ jobs:
       - run: |
              TARGET_TAG=$(yq e '.appVersion' chart/tugger/Chart.yaml)
              docker tag jainishshah17/tugger:$CIRCLE_BUILD_NUM jainishshah17/tugger:$TARGET_TAG
+             docker push jainishshah17/tugger:$TARGET_TAG
       - run: docker push jainishshah17/tugger:$CIRCLE_BUILD_NUM
       - run: docker push jainishshah17/tugger:latest
