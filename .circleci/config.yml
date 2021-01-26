@@ -19,6 +19,8 @@ jobs:
       - checkout
       - setup_remote_docker
 
+      - run: sudo wget https://github.com/mikefarah/yq/releases/download/v4.4.1/yq_linux_amd64 -O /usr/bin/yq &&\
+             sudo chmod +x /usr/bin/yq
       # Login to docker registry
       - run: docker login -u $USER -p $PASSWORD
       # Build docker image
