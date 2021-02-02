@@ -209,8 +209,8 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 				},
 			)
 			patches = append(patches, patch{
-				Op:   "add",
-				Path: "/spec/imagePullSecrets",
+				Op:    "add",
+				Path:  "/spec/imagePullSecrets",
 				Value: imagePullSecrets,
 			})
 		}
