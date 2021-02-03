@@ -209,8 +209,8 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 				},
 			)
 			patches = append(patches, patch{
-				Op:   "add",
-				Path: "/spec/imagePullSecrets",
+				Op:    "add",
+				Path:  "/spec/imagePullSecrets",
 				Value: imagePullSecrets,
 			})
 		}
@@ -451,13 +451,16 @@ func SendSlackNotification(msg string) {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.WithError(err).Error("got error from Slack")
+		if slackDupeCache != nil {
+			slackDupeCache.Delete(msg)
+		}
 		return
 	}
+	defer resp.Body.Close()
 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(resp.Body)
 	if buf.String() != "ok" {
 		log.WithField("resp", buf.String()).Errorln("Non-ok response returned from Slack")
 	}
-	defer resp.Body.Close()
 }
