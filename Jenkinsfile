@@ -70,4 +70,9 @@ pipeline {
       }
     }
   }
+  post {
+    success {
+       finalizeBuild()
+    }
+  }
 }
