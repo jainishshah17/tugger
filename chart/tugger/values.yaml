@@ -3,6 +3,18 @@
 
 replicaCount: 1
 
+# additional annotations to add to the namespace
+namespaceAnnotations: {}
+
+# additional labels to add to the namespace
+namespaceLabels: {}
+
+# additional annotations to add to the pods
+podAnnotations: {}
+
+# additional labels to add to the pods
+podLabels: {}
+
 ## Role Based Access Control
 ## Ref: https://kubernetes.io/docs/admin/authorization/rbac/
 rbac:

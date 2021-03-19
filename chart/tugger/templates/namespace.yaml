@@ -1,0 +1,17 @@
+{{ if or (.Values.namespaceLabels) (.Values.namespaceAnnotations) }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Release.Namespace }}
+  {{- if .Values.namespaceLabels }}
+  labels:
+    {{- toYaml .Values.namespaceLabels | trim | nindent 4 }}
+  {{- end }}
+  {{- if .Values.namespaceAnnotations }}
+  annotations:
+    {{- toYaml .Values.namespaceAnnotations | trim | nindent 4 }}
+  {{- end }}
+spec:
+  finalizers:
+  - kubernetes
+{{- end }}
