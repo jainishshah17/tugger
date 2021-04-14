@@ -20,10 +20,10 @@ In addition, the `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook` adm
 
 ```bash
 # Build docker image
-docker build -t jainishshah17/tugger:0.1.1 .
+docker build -t jainishshah17/tugger:0.1.6 .
 
 # Push it to Docker Registry
-docker push jainishshah17/tugger:0.1.1
+docker push jainishshah17/tugger:0.1.6
 ```
 
 ### Create [Kubernetes Docker registry secret](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
