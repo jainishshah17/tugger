@@ -111,7 +111,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(string(data))
+	log.Debugf(string(data))
 
 	ar := v1beta1.AdmissionReview{}
 	if err := json.Unmarshal(data, &ar); err != nil || ar.Request == nil {
@@ -312,7 +312,7 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(string(data))
+	log.Debugf(string(data))
 
 	ar := v1beta1.AdmissionReview{}
 	if err := json.Unmarshal(data, &ar); err != nil {
