@@ -9,7 +9,7 @@ jobs:
     env:
       upstream: jainishshah17/tugger
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.3.4
       - name: create tag
         if: github.repository == env.upstream
         run: |
