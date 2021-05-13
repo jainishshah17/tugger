@@ -22,6 +22,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IMAGE: jainishshah17/tugger
+    strategy:
+      fail-fast: false
+      matrix:
+        k8sVersion:
+          - v1.17.17
+          - v1.18.15
+          - v1.19.7
+          - "" # the default version
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -38,6 +46,8 @@ jobs:
 
       - name: Create kind cluster
         uses: helm/kind-action@v1.1.0
+        with:
+          node_image: ${{ matrix.k8sVersion && fromJSON('"kindest/node:"') }}${{ matrix.k8sVersion }}
 
       - name: Install
         run: |
