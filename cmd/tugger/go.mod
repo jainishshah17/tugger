@@ -3,7 +3,7 @@ module github.com/jainishshah17/tugger
 go 1.15
 
 require (
-	github.com/google/go-containerregistry v0.5.0
+	github.com/google/go-containerregistry v0.5.1
 	github.com/infobloxopen/atlas-app-toolkit v0.24.1
 	github.com/jarcoal/httpmock v1.0.8
 	github.com/patrickmn/go-cache v2.1.0+incompatible
