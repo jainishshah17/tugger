@@ -192,8 +192,8 @@ github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
-github.com/infobloxopen/atlas-app-toolkit v0.24.2 h1:OYMVUSpwfKBUPQpKaif6vR5aLH+BE9yHrvERkxIRNEg=
-github.com/infobloxopen/atlas-app-toolkit v0.24.2/go.mod h1:Pv4B9FcLYpli96gl5crQ6+aD/2W3igpss95fk3kWt5c=
+github.com/infobloxopen/atlas-app-toolkit v0.25.0 h1:bZ/r7BvHpPv/WWPAV4p0InuNEb4DuRAfKn+p2zz2Vt0=
+github.com/infobloxopen/atlas-app-toolkit v0.25.0/go.mod h1:Pv4B9FcLYpli96gl5crQ6+aD/2W3igpss95fk3kWt5c=
 github.com/jarcoal/httpmock v1.0.8 h1:8kI16SoO6LQKgPE7PvQuV+YuD/inwHd7fOOe2zMbo4k=
 github.com/jarcoal/httpmock v1.0.8/go.mod h1:ATjnClrvW/3tijVmpL/va5Z3aAyGvqU3gCT8nX0Txik=
 github.com/jinzhu/gorm v1.9.16/go.mod h1:G3LB3wezTOWM2ITLzPxEXgSkOXAntiLHS7UdBefADcs=
