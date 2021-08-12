@@ -38,6 +38,7 @@ var (
 	ifExists       bool
 	log            *logrus.Logger
 	policy         *Policy
+	listenPort     int
 	tlsCertFile    string
 	tlsKeyFile     string
 	slackDupeCache *cache.Cache
@@ -69,6 +70,7 @@ func main() {
 	flag.BoolVar(&ifExists, "if-exists", false, "makes the mutation conditional on whether the mutated image name exists in the registry")
 	logLevel := flag.String("log-level", "info", "log verbosity")
 	policyFile := flag.String("policy-file", "", "YAML file defining allowed image name patterns (see readme)")
+	flag.IntVar(&listenPort, "port", 443, "HTTPS Port to listen on for webhook requests.")
 	flag.StringVar(&tlsCertFile, "tls-cert", "/etc/admission-controller/tls/tls.crt", "TLS certificate file.")
 	flag.StringVar(&tlsKeyFile, "tls-key", "/etc/admission-controller/tls/tls.key", "TLS key file.")
 	flag.DurationVar(&slackDedupeTTL, "slack-dedupe-ttl", 3*time.Minute, "drops repeat Slack notifications until this amount of time elapses (requires WEBHOOK_URL defined)")
@@ -91,7 +93,7 @@ func main() {
 	http.HandleFunc("/mutate", mutateAdmissionReviewHandler)
 	http.HandleFunc("/validate", validateAdmissionReviewHandler)
 	s := http.Server{
-		Addr: ":443",
+		Addr: fmt.Sprintf(":%d", listenPort),
 		TLSConfig: &tls.Config{
 			ClientAuth: tls.NoClientCert,
 		},
