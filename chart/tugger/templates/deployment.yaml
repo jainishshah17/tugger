@@ -32,6 +32,8 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - /tugger
+            - --port
+            - {{ .Values.service.port | quote }}
             {{- if .Values.docker.ifExists }}
             - --if-exists
             {{- end }}
@@ -60,7 +62,7 @@ spec:
               value: {{ .Values.webhookUrl }}
           ports:
             - name: https
-              containerPort: 443
+              containerPort: {{ .Values.service.port }}
               protocol: TCP
           volumeMounts:
           {{- if .Values.rules }}

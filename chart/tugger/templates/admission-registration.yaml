@@ -48,6 +48,7 @@ webhooks:
       name: {{ $serviceName }}
       namespace: {{ .Release.Namespace }}
       path: "/validate"
+      port: {{ .Values.service.port }}
     caBundle: {{ b64enc $caCert }}
 {{- end }}
 
@@ -81,6 +82,7 @@ webhooks:
       name: {{ $serviceName }}
       namespace: {{ .Release.Namespace }}
       path: "/mutate"
+      port: {{ .Values.service.port }}
     caBundle: {{ b64enc $caCert }}
 {{- end }}
 

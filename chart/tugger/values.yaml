@@ -93,7 +93,7 @@ livenessProbe:
   httpGet:
     scheme: HTTPS
     path: /ping
-    port: 443
+    port: https
   initialDelaySeconds: 5
   periodSeconds: 10
   timeoutSeconds: 3
@@ -104,7 +104,7 @@ readinessProbe:
   httpGet:
     scheme: HTTPS
     path: /ping
-    port: 443
+    port: https
   initialDelaySeconds: 5
   periodSeconds: 10
   timeoutSeconds: 3
