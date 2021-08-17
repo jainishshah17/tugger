@@ -1,5 +1,5 @@
 # Builder image
-FROM golang:1.16 as builder
+FROM golang:1.17.0 as builder
 
 # Set workspace
 WORKDIR /src/jainishshah17/tugger/
