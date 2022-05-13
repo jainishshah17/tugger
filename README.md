@@ -54,6 +54,14 @@ kubectl create secret docker-registry regsecret --docker-server=${DOCKER_REGISTR
 The helm chart can generate certificates and configure webhooks in a single step.  See the notes on webhooks below for more information.
 
 ```bash
+# Add Tugger Helm repository
+helm repo add tugger https://jainishshah17.github.io/tugger
+
+# Update Helm repository index
+helm repo update
+```
+
+```bash
 helm install --name tugger \
   --set docker.registrySecret=regsecret, \
   --set docker.registryUrl=jainishshah17, \
@@ -61,7 +69,7 @@ helm install --name tugger \
   --set whitelistRegistries={jainishshah17} \
   --set createValidatingWebhook=true \
   --set createMutatingWebhook=true \
-  chart/tugger
+  tugger/tugger
 ```
 
 #### Deploy using kubectl
