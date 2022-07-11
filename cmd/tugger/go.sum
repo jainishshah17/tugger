@@ -427,8 +427,8 @@ github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:
 github.com/imdario/mergo v0.3.4/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJh5FfA=
 github.com/imdario/mergo v0.3.8/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJh5FfA=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
-github.com/infobloxopen/atlas-app-toolkit v1.2.0 h1:5R+NLUgBoDBG3FR50C80oxDQQIdakp733OlLhroxUfM=
-github.com/infobloxopen/atlas-app-toolkit v1.2.0/go.mod h1:CzJ6ssNawJ9D/IPgEyEsErksyNOh9zx8Tjq7tJq3pYQ=
+github.com/infobloxopen/atlas-app-toolkit v1.2.1 h1:vTW9bjP8CRC+FWzucJWQQWFDKR5ynQPdh+ihAEwqtSI=
+github.com/infobloxopen/atlas-app-toolkit v1.2.1/go.mod h1:CzJ6ssNawJ9D/IPgEyEsErksyNOh9zx8Tjq7tJq3pYQ=
 github.com/jarcoal/httpmock v1.2.0 h1:gSvTxxFR/MEMfsGrvRbdfpRUMBStovlSRLw0Ep1bwwc=
 github.com/jarcoal/httpmock v1.2.0/go.mod h1:oCoTsnAz4+UoOUIf5lJOWV2QQIW5UoeUI6aM2YnWAZk=
 github.com/jgautheron/goconst v1.5.1/go.mod h1:aAosetZ5zaeC/2EfMeRswtxUFBpe2Hr7HzkgX4fanO4=
