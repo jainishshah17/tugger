@@ -25,7 +25,7 @@ jobs:
       # Login to docker registry
       - run: docker login -u $USER -p $PASSWORD
       # Build docker image
-      - run: docker build --rm=false -t jainishshah17/tugger:$CIRCLE_BUILD_NUM .
+      - run: docker build --rm=false -t jainishshah17/tugger:$CIRCLE_BUILD_NUM $HOME/go/src/github.com/jainishshah17/tugger
       - run: docker tag jainishshah17/tugger:$CIRCLE_BUILD_NUM jainishshah17/tugger:latest
       - run: |
              TARGET_TAG=$(yq e '.appVersion' chart/tugger/Chart.yaml)
