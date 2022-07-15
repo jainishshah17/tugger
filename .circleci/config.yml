@@ -28,7 +28,7 @@ jobs:
       - run: docker build --rm=false -t jainishshah17/tugger:$CIRCLE_BUILD_NUM $HOME/go/src/github.com/jainishshah17/tugger
       - run: docker tag jainishshah17/tugger:$CIRCLE_BUILD_NUM jainishshah17/tugger:latest
       - run: |
-             TARGET_TAG=$(yq e '.appVersion' chart/tugger/Chart.yaml)
+             TARGET_TAG=$(yq e '.appVersion' $HOME/go/src/github.com/jainishshah17/tugger/chart/tugger/Chart.yaml)
              docker tag jainishshah17/tugger:$CIRCLE_BUILD_NUM jainishshah17/tugger:$TARGET_TAG
              docker push jainishshah17/tugger:$TARGET_TAG
       - run: docker push jainishshah17/tugger:$CIRCLE_BUILD_NUM
