@@ -13,7 +13,7 @@ jobs:
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
 
-    working_directory: /go/src/github.com/jainishshah17/tugger
+    working_directory: $HOME/go/src/github.com/jainishshah17/tugger
 
     steps:
       - checkout
