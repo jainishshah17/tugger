@@ -20,10 +20,10 @@ In addition, the `MutatingAdmissionWebhook` and `ValidatingAdmissionWebhook` adm
 
 ```bash
 # Build docker image
-docker build -t jainishshah17/tugger:0.1.7 .
+docker build -t jainishshah17/tugger:0.1.8 .
 
 # Push it to Docker Registry
-docker push jainishshah17/tugger:0.1.7
+docker push jainishshah17/tugger:0.1.8
 ```
 
 ### Create [Kubernetes Docker registry secret](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/)
@@ -79,7 +79,7 @@ helm install --name tugger \
 	```bash
 	# Run deployment
 	kubectl create -f deployment/tugger-deployment.yaml
-	
+
 	# Create service
 	kubectl create -f  deployment/tugger-svc.yaml
 	```
@@ -90,7 +90,7 @@ helm install --name tugger \
 
 	```bash
 	# re MutatingAdmissionWebhook
-	kubectl create -f webhook/tugger-mutating-webhook ration.yaml 
+	kubectl create -f webhook/tugger-mutating-webhook ration.yaml
 	```
 
 	Note: Use MutatingAdmissionWebhook only if you want to enforce pulling of docker image from Private Docker Registry e.g [JFrog Artifactory](https://jfrog.com/artifactory/).
@@ -98,7 +98,7 @@ helm install --name tugger \
 
 	```bash
 	# Configure ValidatingWebhookConfiguration
-	kubectl create -f webhook/tugger-validating-webhook ration.yaml 
+	kubectl create -f webhook/tugger-validating-webhook ration.yaml
 	```
 
 	Note: Use ValidatingWebhookConfiguration only if you want to check pulling of docker image from Private Docker Registry e.g [JFrog Artifactory](https://jfrog.com/artifactory/).
@@ -107,8 +107,8 @@ helm install --name tugger \
 ### Test Tugger
 
 ```bash
-# Deploy nginx 
-kubectl apply -f test/nginx.yaml 
+# Deploy nginx
+kubectl apply -f test/nginx.yaml
 ```
 
 ## Configure
