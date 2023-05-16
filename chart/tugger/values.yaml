@@ -23,6 +23,8 @@ image:
   pullPolicy: IfNotPresent
   pullSecret:
 
+priorityClassName: ""
+
 service:
   type: ClusterIP
   port: 443
