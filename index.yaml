@@ -3,6 +3,27 @@ entries:
   tugger:
   - apiVersion: v1
     appVersion: 0.1.8
+    created: "2023-05-17T03:02:34.837984796Z"
+    description: A Helm chart for Tugger
+    digest: 021c2ea5a56c7bb544b2be84041868b71024c04482088630d9abe21a1b081d8b
+    home: https://github.com/jainishshah17/tugger
+    icon: https://raw.githubusercontent.com/jainishshah17/containerize-go-microservice/master/static/logo.jpg
+    keywords:
+    - DevOps
+    - helm
+    - kubernetes
+    - docker
+    maintainers:
+    - email: jainishshah@yahoo.com
+      name: jainishshah17
+    name: tugger
+    sources:
+    - https://github.com/jainishshah17/tugger
+    urls:
+    - https://github.com/jainishshah17/tugger/releases/download/tugger-0.4.5/tugger-0.4.5.tgz
+    version: 0.4.5
+  - apiVersion: v1
+    appVersion: 0.1.8
     created: "2023-02-08T19:08:32.51155031Z"
     description: A Helm chart for Tugger
     digest: 48033aaee36c78a262f01e27a6142cca3e22ce95fb15341e316517198d9b7f55
@@ -64,4 +85,4 @@ entries:
     urls:
     - https://github.com/jainishshah17/tugger/releases/download/tugger-0.4.2/tugger-0.4.2.tgz
     version: 0.4.2
-generated: "2023-02-08T19:08:32.51156411Z"
+generated: "2023-05-17T03:02:34.837999896Z"
