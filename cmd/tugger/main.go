@@ -96,6 +96,7 @@ func main() {
 		Addr: fmt.Sprintf(":%d", listenPort),
 		TLSConfig: &tls.Config{
 			ClientAuth: tls.NoClientCert,
+			MinVersion: tls.VersionTLS13,
 		},
 	}
 	log.Fatal(s.ListenAndServeTLS(tlsCertFile, tlsKeyFile))
