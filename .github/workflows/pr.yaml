@@ -71,3 +71,18 @@ jobs:
           test_jsonpath "jainishshah17/nginx" '{.items[0].spec.containers[0].image}'
           test_jsonpath "original-secret"     '{.items[0].spec.imagePullSecrets[0].name}'
           test_jsonpath "regsecret"           '{.items[0].spec.imagePullSecrets[1].name}'
+
+      - name: Print debug
+        if: ${{ always() }}
+        run: |
+          set +x
+          while read cmd
+          do
+            echo "::group::$cmd"
+            $cmd
+            echo "::endgroup::"
+          done <<< 'git diff
+          helm list
+          kubectl get po,rs,svc,ep,secrets,configmap
+          kubectl describe po
+          kubectl logs -l app=tugger'
