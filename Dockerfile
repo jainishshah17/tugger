@@ -8,7 +8,7 @@ WORKDIR /src/jainishshah17/tugger/
 COPY ./ /src/jainishshah17/tugger/
 
 # Build microservices
-RUN cd cmd/tugger && go install
+RUN cd cmd/tugger && CGO_ENABLED=0 go install -ldflags="-extldflags=-static"
 
 # Runnable image
 FROM gcr.io/distroless/base-debian11
