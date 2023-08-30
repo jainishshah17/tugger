@@ -26,10 +26,11 @@ jobs:
       fail-fast: false
       matrix:
         k8sVersion:
-          - v1.20.7
-          - v1.21.2
-          - v1.22.5
-          - v1.23.3
+          - v1.28.0
+          - v1.27.3
+          - v1.26.6
+          - v1.25.11
+          - v1.24.15
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -70,3 +71,18 @@ jobs:
           test_jsonpath "jainishshah17/nginx" '{.items[0].spec.containers[0].image}'
           test_jsonpath "original-secret"     '{.items[0].spec.imagePullSecrets[0].name}'
           test_jsonpath "regsecret"           '{.items[0].spec.imagePullSecrets[1].name}'
+
+      - name: Print debug
+        if: ${{ always() }}
+        run: |
+          set +x
+          while read cmd
+          do
+            echo "::group::$cmd"
+            $cmd
+            echo "::endgroup::"
+          done <<< 'git diff
+          helm list
+          kubectl get po,rs,svc,ep,secrets,configmap
+          kubectl describe po
+          kubectl logs -l app=tugger'
