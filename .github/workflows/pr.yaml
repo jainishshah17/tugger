@@ -54,7 +54,7 @@ jobs:
         run: |
           kind load docker-image $IMAGE --name=chart-testing
           helm install $USER chart/tugger --debug --wait \
-            --set=createMutatingWebhook=true \
+            --set=mutatingWebhook.create=true \
             --set=image.tag=latest
 
       - name: Test Mutation

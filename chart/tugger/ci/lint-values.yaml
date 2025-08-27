@@ -1,6 +1,8 @@
 # enables optional features in the chart so they will be linted in the PR test
-createValidatingWebhook: true
-createMutatingWebhook: true
+validatingWebhook:
+  create: true
+mutatingWebhook:
+  create: true
 env: prod
 docker:
   ifExists: true
