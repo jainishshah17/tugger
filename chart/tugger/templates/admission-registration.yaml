@@ -13,7 +13,7 @@
   {{ $caCert = $ca.Cert }}
 {{- end }}
 
-{{- if .Values.validatingWebhook.create}}
+{{- if or .Values.createValidatingWebhook .Values.validatingWebhook.create}}
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -52,7 +52,7 @@ webhooks:
     caBundle: {{ b64enc $caCert }}
 {{- end }}
 
-{{- if .Values.mutatingWebhook.create }}
+{{- if or .Values.createMutatingWebhook .Values.mutatingWebhook.create }}
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
