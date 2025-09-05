@@ -13,7 +13,7 @@
   {{ $caCert = $ca.Cert }}
 {{- end }}
 
-{{- if .Values.createValidatingWebhook }}
+{{- if or .Values.createValidatingWebhook .Values.validatingWebhook.create}}
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
@@ -42,7 +42,7 @@ webhooks:
     resources:
     - pods
     scope: "Namespaced"
-  failurePolicy: Ignore
+  failurePolicy: {{ default "Ignore" .Values.validatingWebhook.failurePolicy }}
   clientConfig:
     service:
       name: {{ $serviceName }}
@@ -52,7 +52,7 @@ webhooks:
     caBundle: {{ b64enc $caCert }}
 {{- end }}
 
-{{- if .Values.createMutatingWebhook }}
+{{- if or .Values.createMutatingWebhook .Values.mutatingWebhook.create }}
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
@@ -76,7 +76,7 @@ webhooks:
     apiGroups: [""]
     apiVersions: ["v1"]
     resources: ["pods"]
-  failurePolicy: Ignore
+  failurePolicy: {{ default "Ignore" .Values.mutatingWebhook.failurePolicy }}
   clientConfig:
     service:
       name: {{ $serviceName }}

@@ -67,8 +67,8 @@ helm install --name tugger \
   --set docker.registryUrl=jainishshah17, \
   --set whitelistNamespaces={kube-system,default}, \
   --set whitelistRegistries={jainishshah17} \
-  --set createValidatingWebhook=true \
-  --set createMutatingWebhook=true \
+  --set validatingWebhook.create=true \
+  --set mutatingWebhook.create=true \
   tugger/tugger
 ```
 

@@ -70,8 +70,12 @@ namespaceSelector:
   #   operator: NotIn
   #   values: ["0","1"]
 
-createValidatingWebhook: false
-createMutatingWebhook: false
+validatingWebhook:
+  create: false
+  failurePolicy: #default: Ignore, options: Ignore, Fail
+mutatingWebhook:
+  create: false
+  failurePolicy: #default: Ignore, options: Ignore, Fail
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
