@@ -66,6 +66,8 @@ type SlackRequestBody struct {
 	Text string `json:"text"`
 }
 
+const skipValidationAnnotation = "tugger.io/skip"
+
 func main() {
 	flag.BoolVar(&ifExists, "if-exists", false, "makes the mutation conditional on whether the mutated image name exists in the registry")
 	logLevel := flag.String("log-level", "info", "log verbosity")
@@ -135,6 +137,12 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 			log.WithError(err).WithField("object", ar.Request.Object.Raw).Error("could unmarshal pod spec")
 			w.WriteHeader(http.StatusBadRequest)
 			return
+		}
+
+		if shouldSkipPod(pod.ObjectMeta.Annotations) {
+			admissionResponse.Allowed = true
+			log.Printf("Skipping mutation for pod %s/%s due to annotation %q", namespace, pod.Name, skipValidationAnnotation)
+			goto done
 		}
 
 		// Handle Containers
@@ -237,6 +245,7 @@ func mutateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 		admissionResponse.PatchType = &pt
 	}
 
+done:
 	ar = v1beta1.AdmissionReview{
 		Response: &admissionResponse,
 	}
@@ -336,6 +345,12 @@ func validateAdmissionReviewHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if shouldSkipPod(pod.ObjectMeta.Annotations) {
+			log.Printf("Skipping validation for pod %s/%s due to annotation %q", namespace, pod.Name, skipValidationAnnotation)
+			admissionResponse.Allowed = true
+			goto done
+		}
+
 		var validateImage func(string) bool
 		if policy != nil {
 			validateImage = policy.ValidateImage
@@ -414,6 +429,20 @@ func containsRegisty(arr []string, str string) bool {
 		}
 	}
 	return false
+}
+
+func shouldSkipPod(annotations map[string]string) bool {
+	if len(annotations) == 0 {
+		return false
+	}
+
+	skipValue, ok := annotations[skipValidationAnnotation]
+	if !ok {
+		return false
+	}
+
+	normalized := strings.TrimSpace(strings.ToLower(skipValue))
+	return normalized == "true" || normalized == "1" || normalized == "yes"
 }
 
 // ping responds to the request with a plain-text "Ok" message.
