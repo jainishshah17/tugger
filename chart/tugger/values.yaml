@@ -77,7 +77,7 @@ validatingWebhook:
 mutatingWebhook:
   create: false
   failurePolicy: #default: Ignore, options: Ignore, Fail
-  timeoutSeconds: #default: 10, options: 1-30 (webhook call timeout in seconds)
+  timeoutSeconds: 10  # options: 1-30 (webhook call timeout in seconds)
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
