@@ -43,6 +43,7 @@ webhooks:
     - pods
     scope: "Namespaced"
   failurePolicy: {{ default "Ignore" .Values.validatingWebhook.failurePolicy }}
+  timeoutSeconds: {{ default 10 .Values.validatingWebhook.timeoutSeconds }}
   clientConfig:
     service:
       name: {{ $serviceName }}
@@ -77,6 +78,7 @@ webhooks:
     apiVersions: ["v1"]
     resources: ["pods"]
   failurePolicy: {{ default "Ignore" .Values.mutatingWebhook.failurePolicy }}
+  timeoutSeconds: {{ default 10 .Values.mutatingWebhook.timeoutSeconds }}
   clientConfig:
     service:
       name: {{ $serviceName }}
