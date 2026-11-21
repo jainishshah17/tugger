@@ -73,7 +73,7 @@ namespaceSelector:
 validatingWebhook:
   create: false
   failurePolicy: #default: Ignore, options: Ignore, Fail
-  timeoutSeconds: #default: 10, options: 1-30 (webhook call timeout in seconds)
+  timeoutSeconds: 10  # options: 1-30 (webhook call timeout in seconds)
 mutatingWebhook:
   create: false
   failurePolicy: #default: Ignore, options: Ignore, Fail
