@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/google/go-containerregistry v0.15.2
 	github.com/infobloxopen/atlas-app-toolkit v1.4.0
-	github.com/jarcoal/httpmock v1.3.0
+	github.com/jarcoal/httpmock v1.3.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/sirupsen/logrus v1.9.3
 	google.golang.org/grpc/examples v0.0.0-20210730002332-ea9b7a0a7651 // indirect
