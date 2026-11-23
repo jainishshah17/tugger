@@ -135,6 +135,10 @@ _condition_ is a special condition to test before committing the replacement. In
 
 Each rule will be evaluated in order, and if the list is exhausted without a match, the admission controller will return `allowed: false`.
 
+### Per-pod emergency bypass
+
+If you need to temporarily bypass Tugger for a specific pod, add annotation `tugger.io/skip: "true"` on that pod template. When set to one of `true`, `1`, or `yes`, Tugger will skip both mutation and validation for that pod while keeping namespace-level policies unchanged.
+
 ### Examples
 
 This example allows all images without rewriting:

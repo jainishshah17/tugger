@@ -172,6 +172,35 @@ const (
 			}
 		  }
 		}`
+	skipAnnotationAdmissionRequest = `
+	  {
+		  "kind": "AdmissionReview",
+		  "request": {
+			"kind": {
+			  "kind": "Pod",
+			  "version": "v1"
+			},
+			"name": "myapp",
+			"namespace": "foobar",
+			  "object": {
+			  "metadata": {
+				"name": "myapp",
+				"namespace": "foobar",
+				"annotations": {
+				  "tugger.io/skip": "true"
+				}
+			  },
+			  "spec": {
+				"containers": [
+				  {
+					"image": "nginx",
+					"name": "nginx-frontend"
+				  }
+				]
+			  }
+			}
+		  }
+		}`
 )
 
 var (
@@ -226,6 +255,15 @@ var (
 			expectBody:   `{"response":{"uid":"","allowed":true}}`,
 		},
 		{
+			name:         "mutate/skip-annotation",
+			handler:      mutateAdmissionReviewHandler,
+			reqMethod:    "POST",
+			reqPath:      "/mutate",
+			reqBody:      string(skipAnnotationAdmissionRequest),
+			expectStatus: http.StatusOK,
+			expectBody:   `{"response":{"uid":"","allowed":true}}`,
+		},
+		{
 			name:         "validate/untrusted",
 			handler:      validateAdmissionReviewHandler,
 			reqMethod:    "POST",
@@ -258,6 +296,15 @@ var (
 			reqMethod:    "POST",
 			reqPath:      "/validate",
 			reqBody:      string(whitelistedAdmissionRequest),
+			expectStatus: http.StatusOK,
+			expectBody:   `{"response":{"uid":"","allowed":true}}`,
+		},
+		{
+			name:         "validate/skip-annotation",
+			handler:      validateAdmissionReviewHandler,
+			reqMethod:    "POST",
+			reqPath:      "/validate",
+			reqBody:      string(skipAnnotationAdmissionRequest),
 			expectStatus: http.StatusOK,
 			expectBody:   `{"response":{"uid":"","allowed":true}}`,
 		},
@@ -433,6 +480,29 @@ func TestSendSlackNotification(t *testing.T) {
 				webhookUrl = defaultWebhookURL
 			}()
 			SendSlackNotification(tt.msg)
+		})
+	}
+}
+
+func Test_shouldSkipPod(t *testing.T) {
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		want        bool
+	}{
+		{name: "no annotations", annotations: nil, want: false},
+		{name: "different annotation", annotations: map[string]string{"foo": "bar"}, want: false},
+		{name: "true value", annotations: map[string]string{skipValidationAnnotation: "true"}, want: true},
+		{name: "one value", annotations: map[string]string{skipValidationAnnotation: "1"}, want: true},
+		{name: "yes value with spaces", annotations: map[string]string{skipValidationAnnotation: " Yes "}, want: true},
+		{name: "false value", annotations: map[string]string{skipValidationAnnotation: "false"}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := shouldSkipPod(tt.annotations); got != tt.want {
+				t.Errorf("shouldSkipPod() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
